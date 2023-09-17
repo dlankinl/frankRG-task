@@ -1,29 +1,44 @@
 package models
 
 import (
+	_ "FrankRGTask/internal/logger"
 	"bytes"
+	"context"
 	"github.com/sirupsen/logrus"
 	"time"
 )
 
 type File struct {
+	ID          int
 	Name        string
 	Size        int64
 	ModTime     time.Time
 	IsDirectory bool
 	Content     []byte
-	SubFiles    []File
-	ParentID
+	ParentID    int
 }
 
-func NewFile(name string, size int64, modTime time.Time, isDirectory bool, content []byte, subFiles []File) File {
-	return File{
+func NewFile(name string, size int64, modTime time.Time, isDirectory bool, content []byte, parentID int) *File {
+	//fn := "internal.models.database.NewFile"
+
+	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
+	defer cancel()
+
+	query := `INSERT INTO FIles(name, size, modtime, isdirectory, content, parentid) 
+					VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
+
+	var id int
+	_ = DB.QueryRowContext(ctx, query, name, size, modTime, isDirectory, content, parentID).Scan(&id)
+
+	logrus.Infof("RES: %v\n", id)
+	return &File{
+		ID:          id,
 		Name:        name,
 		Size:        size,
 		ModTime:     modTime,
 		IsDirectory: isDirectory,
 		Content:     content,
-		SubFiles:    subFiles,
+		ParentID:    parentID,
 	}
 }
 
@@ -37,13 +52,13 @@ func (f *File) ChangeContent(content []byte) {
 	f.Content = content
 }
 
-func (f *File) AddSubFiles(subFiles []File) {
-	fn := "internal.models.file.AddSubFiles"
-
-	if len(subFiles) == 0 {
-		logrus.Infof("%s: %s\n", fn, "subFiles length is zero")
-		return
-	}
-
-	f.SubFiles = append(f.SubFiles, subFiles...)
-}
+//func (f *File) AddSubFiles(subFiles []File) {
+//	fn := "internal.models.file.AddSubFiles"
+//
+//	if len(subFiles) == 0 {
+//		logrus.Infof("%s: %s\n", fn, "subFiles length is zero")
+//		return
+//	}
+//
+//	//f.SubFiles = append(f.SubFiles, subFiles...)
+//}

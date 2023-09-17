@@ -1,9 +1,13 @@
 package models
 
-import "github.com/jinzhu/gorm"
+import (
+	"database/sql"
+	"time"
+)
 
-var DB *gorm.DB
+var DB *sql.DB
+var dbTimeout = time.Second * 3
 
-func SetDatabase(db *gorm.DB) {
+func SetDatabase(db *sql.DB) {
 	DB = db
 }

@@ -3,22 +3,22 @@ package database
 import (
 	"FrankRGTask/config"
 	_ "FrankRGTask/internal/logger"
-	"github.com/jinzhu/gorm"
+	"database/sql"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/sirupsen/logrus"
 )
 
-var db *gorm.DB
+var db *sql.DB
 
-func ConnectDB(config config.Config, connStr string) *gorm.DB {
+func ConnectDB(config config.Config, connStr string) *sql.DB {
 	fn := "database.ConnectDB"
 
-	db, err := gorm.Open(config.DBDriver, connStr)
+	db, err := sql.Open(config.DBDriver, connStr)
 	if err != nil {
 		logrus.Fatalf("%s: %s\n", fn, err)
 	}
 
-	if err = db.DB().Ping(); err != nil {
+	if err = db.Ping(); err != nil {
 		logrus.Fatalf("%s: %s\n", fn, err)
 	}
 
