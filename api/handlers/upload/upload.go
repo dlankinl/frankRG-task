@@ -11,8 +11,6 @@ import (
 	"time"
 )
 
-var file models.File
-
 const MAX_UPLOAD_SIZE = 2 * 1024 * 1024 // 2 MB
 
 func UploadFileHandler(w http.ResponseWriter, r *http.Request) {

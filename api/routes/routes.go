@@ -2,7 +2,9 @@ package routes
 
 import (
 	"FrankRGTask/api/handlers/create"
+	delete2 "FrankRGTask/api/handlers/delete"
 	"FrankRGTask/api/handlers/directory"
+	"FrankRGTask/api/handlers/file"
 	"FrankRGTask/api/handlers/upload"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -32,6 +34,8 @@ func Routes() http.Handler {
 	router.Post("/api/uploadfile/{name}", upload.UploadFileHandler)
 	router.Get("/dir/{name}", directory.DirHandler)
 	//router.Get("/file/{dir}/{name}")
+	router.Get("/file/{name}", file.FileHandler)
+	router.Delete("/api/file/{id}", delete2.DeleteFileHandler)
 
 	return router
 }
