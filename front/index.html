@@ -32,8 +32,8 @@
 <button id="inputDialogBtn2">Create directory</button>
 
 <form id="uploadForm" enctype="multipart/form-data" action="/api/uploadfile" method="post">
-    <input type="file" name="myFile">Upload a file
-    <input type="submit" value="upload">
+    <input type="file" name="myFile">
+    <input type="submit" value="Загрузить">
 </form>
 
 <div id="inputDialogFile" class="modal">
@@ -53,7 +53,15 @@
     </div>
 </div>
 
-<table>
+<div id="inputRenameFile" class="modal">
+    <div class="modal-content">
+        <h2>Rename file/directory options</h2>
+        <input type="text" id="newName" placeholder="Enter new name">
+        <button id="confirmRenameButton">OK</button>
+    </div>
+</div>
+
+<table id="files">
     <thead>
     <tr>
         <th>Имя</th>
@@ -69,6 +77,9 @@
         <td>{{if .IsDirectory}}d{{else}}f{{end}}</td>
         <td>{{if .IsDirectory}}-{{else}}{{.Size}}{{end}}</td>
         <td>{{.ModTime}}</td>
+        <td><button class="renameBtn" data-id="{{.ID}}">Переименовать</button></td>
+        <td><button class="removeBtn" data-id="{{.ID}}">Удалить</button></td>
+        <td><button class="downloadBtn" data-id="{{.ID}}">Загрузить</button></td>
     </tr>
     {{end}}
     </tbody>
@@ -83,6 +94,84 @@
     //     // After form processing, reload the page
     //     location.reload();
     // });
+
+    const filesTable = document.getElementById("files");
+    var dataID;
+
+    filesTable.addEventListener("click", function(ev) {
+        if (ev.target.classList.contains("renameBtn")) {
+            dataID = ev.target.getAttribute("data-id");
+            openRenameDialog();
+        }
+
+        if (ev.target.classList.contains("removeBtn")) {
+            dataID = ev.target.getAttribute("data-id");
+            deleteFile(dataID)
+        }
+
+        if (ev.target.classList.contains("downloadBtn")) {
+            dataID = ev.target.getAttribute("data-id");
+            console.log(dataID)
+        }
+    })
+
+    const confirmRenameBtn = document.getElementById("confirmRenameButton");
+    const modalRename = document.getElementById("inputRenameFile");
+
+    confirmRenameBtn.addEventListener("click", function() {closeRenameDialog(); renameFile()})
+
+    function renameFile() {
+        const newName = document.getElementById("newName").value;
+        const data = {
+            id: parseInt(dataID),
+            new_name: newName
+        };
+
+        const requestOptions = {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        };
+
+        fetch("/api/file", requestOptions)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Network response was not ok!");
+                }
+                return response.json();
+            })
+            .then(data => {
+                location.reload();
+            })
+            .catch(error => {
+                console.error("Error: ", error);
+            });
+    }
+
+    function deleteFile(id) {
+        const requestOptions = {
+            method: "DELETE",
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        }
+
+        fetch("/api/file/" + id, requestOptions)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Network response was not ok!");
+                }
+                return response.json();
+            })
+            .then(data => {
+                location.reload();
+            })
+            .catch(error => {
+                console.error("Error: ", error);
+            });
+    }
 
     const modalFile = document.getElementById("inputDialogFile");
     const openFileButton = document.getElementById("inputDialogBtn1");
@@ -106,6 +195,14 @@
 
     function closeDirDialog() {
         modalDir.style.display = "none";
+    }
+
+    function openRenameDialog() {
+        modalRename.style.display = "block";
+    }
+
+    function closeRenameDialog() {
+        modalRename.style.display = "none";
     }
 
     openFileButton.addEventListener("click", openFileDialog);

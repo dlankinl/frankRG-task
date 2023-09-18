@@ -24,7 +24,6 @@ func DeleteFileHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), models.DBTimeout)
 	defer cancel()
 
-	//query := `DELETE FROM files WHERE id = $1 OR parentid = $1`
 	query := `
 		WITH RECURSIVE DirectoryHierarchy AS (
 		    SELECT id FROM files WHERE id = $1           

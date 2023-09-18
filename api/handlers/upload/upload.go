@@ -4,6 +4,7 @@ import (
 	_ "FrankRGTask/internal/logger"
 	"FrankRGTask/internal/models"
 	"FrankRGTask/internal/util"
+	"errors"
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"io"
@@ -18,6 +19,7 @@ func UploadFileHandler(w http.ResponseWriter, r *http.Request) {
 	file, handler, err := r.FormFile("myFile")
 	if err != nil {
 		logrus.Warnf("error retrieving the file: %s\n", err)
+		util.ErrorJSON(w, errors.New("bad json data"), http.StatusBadRequest)
 		return
 	}
 

@@ -6,6 +6,7 @@ import (
 	"FrankRGTask/internal/util"
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/sirupsen/logrus"
 	"net/http"
@@ -39,6 +40,7 @@ func CreateFileHandler(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&fileResp)
 	if err != nil {
 		logrus.Warnf("%s: %s\n", fn, err)
+		util.ErrorJSON(w, errors.New("bad json request"), http.StatusBadRequest)
 		return
 	}
 
