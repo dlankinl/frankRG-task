@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{.}}</title>
+</head>
+<body>
+<h1>Web file system for Frank RG</h1>
+<button>Create file</button>
+<button>Create directory</button>
+<button>Upload a file</button>
+<table>
+    <thead>
+    <tr>
+        <th>Имя</th>
+        <th>Размер</th>
+        <th>Изменен</th>
+    </tr>
+    </thead>
+    <tbody>
+    {{range .}}
+    <tr>
+        <td><a href="{{if .IsDirectory}}/{{end}}{{.Name}}">{{.Name}}</a></td>
+        <td>{{if .IsDirectory}}-{{else}}{{.Size}}{{end}}</td>
+        <td>{{.ModTime}}</td>
+    </tr>
+    {{end}}
+    </tbody>
+</table>
+</body>
+</html>

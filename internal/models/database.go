@@ -6,7 +6,7 @@ import (
 )
 
 var DB *sql.DB
-var dbTimeout = time.Second * 3
+var DBTimeout = time.Second * 3
 
 func SetDatabase(db *sql.DB) {
 	DB = db

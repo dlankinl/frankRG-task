@@ -21,10 +21,10 @@ type File struct {
 func NewFile(name string, size int64, modTime time.Time, isDirectory bool, content []byte, parentID int) *File {
 	//fn := "internal.models.database.NewFile"
 
-	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), DBTimeout)
 	defer cancel()
 
-	query := `INSERT INTO FIles(name, size, modtime, isdirectory, content, parentid) 
+	query := `INSERT INTO Files(name, size, modtime, isdirectory, content, parentid) 
 					VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
 
 	var id int
@@ -52,13 +52,4 @@ func (f *File) ChangeContent(content []byte) {
 	f.Content = content
 }
 
-//func (f *File) AddSubFiles(subFiles []File) {
-//	fn := "internal.models.file.AddSubFiles"
-//
-//	if len(subFiles) == 0 {
-//		logrus.Infof("%s: %s\n", fn, "subFiles length is zero")
-//		return
-//	}
-//
-//	//f.SubFiles = append(f.SubFiles, subFiles...)
-//}
+//func ChangeFileContent()

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"FrankRGTask/api/routes"
 	config2 "FrankRGTask/config"
 	"FrankRGTask/database"
 	_ "FrankRGTask/internal/logger"
@@ -14,7 +15,7 @@ import (
 func Serve(addr string) error {
 	srv := &http.Server{
 		Addr:    addr,
-		Handler: nil,
+		Handler: routes.Routes(),
 	}
 
 	logrus.Infof("server is listening on %s address", addr)
@@ -39,6 +40,9 @@ func main() {
 	logrus.Infof("New file is: %v\n", newFile)
 
 	//http.ListenAndServe(fmt.Sprintf("%s:%s", config.ServerHost, config.ServerPort), nil)
+
+	//http.Handle("/", directory.DirHandler(1))
+	//http.Get("/api")
 	err = Serve(address)
 	if err != nil {
 		logrus.Fatal("error while serving http server: ", err)

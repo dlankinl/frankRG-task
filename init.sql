@@ -8,4 +8,4 @@ CREATE TABLE IF NOT EXISTS Files(
     parentid INT NOT NULL
 );
 
-INSERT INTO Files (name, size, modtime, isdirectory, content, parentid) VALUES ('root', 0, now(), true, '', 0);
+INSERT INTO Files (name, size, modtime, isdirectory, content, parentid) VALUES ('directory', 0, now(), true, '', 0);
