@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"FrankRGTask/api/handlers/create"
 	"FrankRGTask/api/handlers/directory"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -23,6 +24,9 @@ func Routes() http.Handler {
 	}))
 
 	router.Get("/", directory.DirHandler)
+	//router.Get("/api/createfile", create.CreateFileHandler)
+	router.Post("/api/createfile", create.CreateFileHandler)
+	//router.Get("/api/createdir", create.CreateDirectoryHandler)
 
 	return router
 }

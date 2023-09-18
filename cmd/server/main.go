@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"net/http"
-	"time"
 )
 
 func Serve(addr string) error {
@@ -35,9 +34,6 @@ func main() {
 	models.DB = db
 
 	address := fmt.Sprintf("%s:%s", config.ServerHost, config.ServerPort)
-	parsedTime, _ := time.Parse("2006-01-02 15:04:05", "2023-09-17 00:17:17")
-	newFile := models.NewFile("bro", 324, parsedTime, false, []byte("sge"), 1)
-	logrus.Infof("New file is: %v\n", newFile)
 
 	//http.ListenAndServe(fmt.Sprintf("%s:%s", config.ServerHost, config.ServerPort), nil)
 

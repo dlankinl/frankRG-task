@@ -50,7 +50,7 @@ import (
 //}
 
 func DirHandler(w http.ResponseWriter, r *http.Request) {
-	fn := "internal.handlers.directory.DirHandler"
+	fn := "api.handlers.directory.DirHandler"
 
 	ctx, cancel := context.WithTimeout(context.Background(), models.DBTimeout)
 	defer cancel()

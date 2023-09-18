@@ -3,16 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <title>{{.}}</title>
+    <style>
+        /* Styles for the modal dialog */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-content {
+            background-color: #f4f4f4;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 40%;
+        }
+    </style>
 </head>
 <body>
 <h1>Web file system for Frank RG</h1>
-<button>Create file</button>
-<button>Create directory</button>
+<button id="inputDialogBtn1">Create file</button>
+<button id="inputDialogBtn2">Create directory</button>
 <button>Upload a file</button>
+
+<div id="inputDialogFile" class="modal">
+    <div class="modal-content">
+        <h2>Enter file options</h2>
+        <input type="text" id="filenameInput" placeholder="Enter filename">
+        <input type="text" id="contentInput" placeholder="Enter content">
+        <button id="confirmInputButton1">OK</button>
+    </div>
+</div>
+
+<div id="inputDialogDir" class="modal">
+    <div class="modal-content">
+        <h2>Enter directory options</h2>
+        <input type="text" id="dirnameInput" placeholder="Enter dirname">
+        <button id="confirmInputButton2">OK</button>
+    </div>
+</div>
+
 <table>
     <thead>
     <tr>
         <th>Имя</th>
+        <th>Тип</th>
         <th>Размер</th>
         <th>Изменен</th>
     </tr>
@@ -20,12 +61,117 @@
     <tbody>
     {{range .}}
     <tr>
-        <td><a href="{{if .IsDirectory}}/{{end}}{{.Name}}">{{.Name}}</a></td>
+        <td><a href="{{if .IsDirectory}}/{{end}}{{.Name}}">{{if .IsDirectory}}{{.Name}}/{{else}}{{.Name}}{{end}}</a></td>
+        <td>{{if .IsDirectory}}d{{else}}f{{end}}</td>
         <td>{{if .IsDirectory}}-{{else}}{{.Size}}{{end}}</td>
         <td>{{.ModTime}}</td>
     </tr>
     {{end}}
     </tbody>
 </table>
+<script>
+    const modalFile = document.getElementById("inputDialogFile");
+    const openFileButton = document.getElementById("inputDialogBtn1");
+    const confirmFileButton = document.getElementById("confirmInputButton1");
+
+    const modalDir = document.getElementById("inputDialogDir");
+    const openDirButton = document.getElementById("inputDialogBtn2");
+    const confirmDirButton = document.getElementById("confirmInputButton2");
+
+    function openFileDialog() {
+        modalFile.style.display = "block";
+    }
+
+    function closeFileDialog() {
+        modalFile.style.display = "none";
+    }
+
+    function openDirDialog() {
+        modalDir.style.display = "block";
+    }
+
+    function closeDirDialog() {
+        modalDir.style.display = "none";
+    }
+
+    openFileButton.addEventListener("click", openFileDialog);
+    confirmFileButton.addEventListener("click", function () {closeFileDialog(); createNewFile()});
+
+    openDirButton.addEventListener("click", openDirDialog);
+    confirmDirButton.addEventListener("click", function () {closeDirDialog(); createNewDir()})
+
+    const byteSize = str => new Blob([str]).size;
+
+    function createNewFile() {
+        const content = document.getElementById("contentInput").value;
+        const name = document.getElementById("filenameInput").value;
+        const size = byteSize(content);
+
+        const data = {
+            name: name,
+            size: size,
+            content: content,
+            is_dir: false
+            // parentID TODO: know the parentID
+        };
+
+        const requestOptions = {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        };
+
+        fetch("/api/createfile", requestOptions)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Network response was not ok!");
+                }
+                return response.json();
+            })
+            .then(data => {
+                location.reload();
+            })
+            .catch(error => {
+                console.error("Error: ", error);
+            });
+    }
+
+    function createNewDir() {
+        const content = null;
+        const name = document.getElementById("dirnameInput").value;
+
+        const data = {
+            name: name,
+            size: 0,
+            content: content,
+            is_dir: true
+            // parentID TODO: know the parentID
+        };
+
+        const requestOptions = {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        };
+
+        fetch("/api/createfile", requestOptions)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Network response was not ok!");
+                }
+                return response.json();
+            })
+            .then(data => {
+                location.reload();
+            })
+            .catch(error => {
+                console.error("Error: ", error);
+            });
+    }
+</script>
 </body>
 </html>

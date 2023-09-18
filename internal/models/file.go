@@ -19,8 +19,6 @@ type File struct {
 }
 
 func NewFile(name string, size int64, modTime time.Time, isDirectory bool, content []byte, parentID int) *File {
-	//fn := "internal.models.database.NewFile"
-
 	ctx, cancel := context.WithTimeout(context.Background(), DBTimeout)
 	defer cancel()
 
@@ -30,7 +28,7 @@ func NewFile(name string, size int64, modTime time.Time, isDirectory bool, conte
 	var id int
 	_ = DB.QueryRowContext(ctx, query, name, size, modTime, isDirectory, content, parentID).Scan(&id)
 
-	logrus.Infof("RES: %v\n", id)
+	logrus.Infof("file '%s' was successfully added\n", name)
 	return &File{
 		ID:          id,
 		Name:        name,
