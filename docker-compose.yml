@@ -4,13 +4,33 @@ services:
   postgres-db:
     image: postgres:latest
     container_name: postgres-fs-db
+    restart: always
     env_file:
-      - pg.env
+      - .env
     ports:
       - '5432:5432'
     volumes:
       - postgres-db:/var/lib/postgresql/data
+    networks:
+      - base
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: api-fs
+    ports:
+      - '8083:8083'
+    depends_on:
+      - postgres-db
+    volumes:
+      - .:/app
+    networks:
+      - base
 
 volumes:
   postgres-db:
     driver: local
+
+networks:
+  base:
+    driver: bridge

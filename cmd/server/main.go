@@ -30,15 +30,11 @@ func main() {
 	}
 
 	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s", config.DBHost, config.DBPort, config.DBUser, config.DBPassword, config.DBName, config.SSLMode)
-	db := database.ConnectDB(config, connStr)
+	db := database.ConnectDBAndMigrate(config, connStr)
 	models.DB = db
 
 	address := fmt.Sprintf("%s:%s", config.ServerHost, config.ServerPort)
 
-	//http.ListenAndServe(fmt.Sprintf("%s:%s", config.ServerHost, config.ServerPort), nil)
-
-	//http.Handle("/", directory.DirHandler(1))
-	//http.Get("/api")
 	err = Serve(address)
 	if err != nil {
 		logrus.Fatal("error while serving http server: ", err)
