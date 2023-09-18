@@ -2,6 +2,7 @@ package directory
 
 import (
 	"FrankRGTask/internal/models"
+	"FrankRGTask/internal/util"
 	"context"
 	"github.com/go-chi/chi/v5"
 	"github.com/sirupsen/logrus"
@@ -26,10 +27,10 @@ func DirHandler(w http.ResponseWriter, r *http.Request) {
 
 	query := `SELECT * FROM Files WHERE parentid = $1`
 
-	//rows, err := models.DB.QueryContext(ctx, query, 1)
 	rows, err := models.DB.QueryContext(ctx, query, id)
 	if err != nil {
 		logrus.Warnf("%s: %s\n", fn, err)
+		util.ErrorJSON(w, err, http.StatusBadRequest)
 		return
 	}
 
@@ -48,6 +49,7 @@ func DirHandler(w http.ResponseWriter, r *http.Request) {
 		err = rows.Scan(columns...)
 		if err != nil {
 			logrus.Warnf("%s: %s\n", fn, err)
+			util.ErrorJSON(w, err, http.StatusBadRequest)
 			return
 		}
 		filesList = append(filesList, file)

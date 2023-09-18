@@ -20,6 +20,7 @@ func RenameFile(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&fileResp)
 	if err != nil {
 		logrus.Warnf("%s\n", err)
+		util.ErrorJSON(w, err, http.StatusBadRequest)
 		return
 	}
 
@@ -34,6 +35,7 @@ func RenameFile(w http.ResponseWriter, r *http.Request) {
 	_, err = models.DB.ExecContext(ctx, query, fileResp.Newname, fileResp.ID)
 	if err != nil {
 		logrus.Warnf("%s\n", err)
+		util.ErrorJSON(w, err, http.StatusBadRequest)
 		return
 	}
 

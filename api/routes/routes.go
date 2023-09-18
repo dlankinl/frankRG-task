@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"FrankRGTask/api/download"
 	"FrankRGTask/api/handlers/create"
 	delete2 "FrankRGTask/api/handlers/delete"
 	"FrankRGTask/api/handlers/directory"
@@ -30,14 +31,13 @@ func Routes() http.Handler {
 	router.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/dir/root", http.StatusPermanentRedirect)
 	})
-	//router.Get("/root", directory.DirHandler)
 	router.Post("/api/createfile/{name}", create.CreateFileHandler)
 	router.Post("/api/uploadfile/{name}", upload.UploadFileHandler)
-	router.Get("/dir/{name}", directory.DirHandler)
-	//router.Get("/file/{dir}/{name}")
-	router.Get("/file/{name}", file.FileHandler)
-	router.Delete("/api/file/{id}", delete2.DeleteFileHandler)
 	router.Post("/api/file", rename.RenameFile)
+	router.Get("/dir/{name}", directory.DirHandler)
+	router.Get("/file/{name}", file.FileHandler)
+	router.Get("/api/downloadfile/{id}", download.DownloadFileHandler)
+	router.Delete("/api/file/{id}", delete2.DeleteFileHandler)
 
 	return router
 }

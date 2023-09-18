@@ -4,6 +4,7 @@ import (
 	"FrankRGTask/internal/models"
 	"FrankRGTask/internal/util"
 	"context"
+	"errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/lib/pq"
 	"github.com/sirupsen/logrus"
@@ -16,6 +17,7 @@ func DeleteFileHandler(w http.ResponseWriter, r *http.Request) {
 	intID, err := strconv.Atoi(id)
 	if err != nil {
 		logrus.Warnf("%s\n", err)
+		util.ErrorJSON(w, errors.New("couldn't convert id from 'string' type to 'int'"), http.StatusBadRequest)
 		return
 	}
 
@@ -37,6 +39,7 @@ func DeleteFileHandler(w http.ResponseWriter, r *http.Request) {
 	rows, err := models.DB.QueryContext(ctx, query, intID)
 	if err != nil {
 		logrus.Warnf("%s\n", err)
+		util.ErrorJSON(w, err, http.StatusBadRequest)
 		return
 	}
 
@@ -45,6 +48,7 @@ func DeleteFileHandler(w http.ResponseWriter, r *http.Request) {
 		var idInner int
 		if err = rows.Scan(&idInner); err != nil {
 			logrus.Warnf("%s\n", err)
+			util.ErrorJSON(w, err, http.StatusBadRequest)
 			return
 		}
 		idsToDelete = append(idsToDelete, idInner)
@@ -56,6 +60,7 @@ func DeleteFileHandler(w http.ResponseWriter, r *http.Request) {
 	_, err = models.DB.ExecContext(ctx, deleteQuery, pgIntArray)
 	if err != nil {
 		logrus.Warnf("%s\n", err)
+		util.ErrorJSON(w, err, http.StatusBadRequest)
 		return
 	}
 

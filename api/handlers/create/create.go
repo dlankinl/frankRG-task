@@ -23,8 +23,6 @@ type FileRequest struct {
 var file models.File
 
 func CreateFileHandler(w http.ResponseWriter, r *http.Request) {
-	fn := "api.handlers.create.CreateFileHandler"
-
 	name := chi.URLParam(r, "name")
 
 	ctx, cancel := context.WithTimeout(context.Background(), models.DBTimeout)
@@ -39,7 +37,7 @@ func CreateFileHandler(w http.ResponseWriter, r *http.Request) {
 	var fileResp FileRequest
 	err := json.NewDecoder(r.Body).Decode(&fileResp)
 	if err != nil {
-		logrus.Warnf("%s: %s\n", fn, err)
+		logrus.Warnf("%s\n", err)
 		util.ErrorJSON(w, errors.New("bad json request"), http.StatusBadRequest)
 		return
 	}

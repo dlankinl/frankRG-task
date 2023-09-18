@@ -10,25 +10,15 @@ import (
 
 type FileResponse struct {
 	Filename string `json:"filename"`
-	Content  []byte `json:"content"`
+	Content  string `json:"content"`
 }
 
 func FileHandler(w http.ResponseWriter, r *http.Request) {
-	//fn := "api.handlers.file.FileHandler"
-
-	//dirName := chi.URLParam(r, "dir")
 	filename := chi.URLParam(r, "name")
 
 	ctx, cancel := context.WithTimeout(context.Background(), models.DBTimeout)
 	defer cancel()
-	//
-	//queryID := `SELECT id FROM Files WHERE name = $1 AND size = 0`
-	//
-	//var id int
-	//
-	//_ = models.DB.QueryRowContext(ctx, queryID, dirName).Scan(&id)
 
-	//queryContent := `SELECT Content FROM Files WHERE parentid = $1 AND name = $2`
 	queryContent := `SELECT Content FROM Files WHERE name = $1`
 
 	var content []byte
@@ -37,14 +27,8 @@ func FileHandler(w http.ResponseWriter, r *http.Request) {
 
 	var resp FileResponse
 
-	resp.Content = content
+	resp.Content = string(content)
 	resp.Filename = filename
 
 	util.WriteJSON(w, http.StatusOK, resp)
-
-	//if err != nil {
-	//	logrus.Warnf("%s: %s\n", fn, err)
-	//	return
-	//}
-
 }

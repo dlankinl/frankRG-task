@@ -31,7 +31,7 @@
 <button id="inputDialogBtn1">Create file</button>
 <button id="inputDialogBtn2">Create directory</button>
 
-<form id="uploadForm" enctype="multipart/form-data" action="/api/uploadfile" method="post">
+<form id="uploadForm" enctype="multipart/form-data" method="post">
     <input type="file" name="myFile">
     <input type="submit" value="Загрузить">
 </form>
@@ -79,22 +79,12 @@
         <td>{{.ModTime}}</td>
         <td><button class="renameBtn" data-id="{{.ID}}">Переименовать</button></td>
         <td><button class="removeBtn" data-id="{{.ID}}">Удалить</button></td>
-        <td><button class="downloadBtn" data-id="{{.ID}}">Загрузить</button></td>
+        <td><button class="downloadBtn" data-id="{{.ID}}" name="{{.Name}}">Загрузить</button></td>
     </tr>
     {{end}}
     </tbody>
 </table>
 <script>
-    // document.getElementById("uploadForm").addEventListener("submit", function(event) {
-    //     // Prevent the default form submission behavior
-    //
-    //     // Perform any form submission processing here
-    //     // For example, you can send the data to a server using fetch() or XMLHttpRequest
-    //
-    //     // After form processing, reload the page
-    //     location.reload();
-    // });
-
     const filesTable = document.getElementById("files");
     var dataID;
 
@@ -111,9 +101,43 @@
 
         if (ev.target.classList.contains("downloadBtn")) {
             dataID = ev.target.getAttribute("data-id");
-            console.log(dataID)
+            const name = ev.target.getAttribute("name");
+            downloadFile(name)
         }
     })
+
+    function downloadFile(filename) {
+        const requestOptions = {
+            method: "GET",
+            headers: {
+                'Content-Type': 'application/octet-stream',
+            },
+        }
+
+        fetch("/api/downloadfile/" + dataID, requestOptions)
+            .then(response => {
+                if (!response.ok) {
+                    return response.clone().json().then(data => {
+                        throw new Error(data.message)
+                    })
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                console.log(blob)
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+            })
+            .catch(error => {
+                alert(error)
+                console.error("Error: ", error);
+            })
+    }
 
     const confirmRenameBtn = document.getElementById("confirmRenameButton");
     const modalRename = document.getElementById("inputRenameFile");
@@ -138,7 +162,9 @@
         fetch("/api/file", requestOptions)
             .then(response => {
                 if (!response.ok) {
-                    throw new Error("Network response was not ok!");
+                    return response.clone().json().then(data => {
+                        throw new Error(data.message)
+                    })
                 }
                 return response.json();
             })
@@ -146,7 +172,7 @@
                 location.reload();
             })
             .catch(error => {
-                console.error("Error: ", error);
+                alert(error)
             });
     }
 
@@ -161,7 +187,9 @@
         fetch("/api/file/" + id, requestOptions)
             .then(response => {
                 if (!response.ok) {
-                    throw new Error("Network response was not ok!");
+                    return response.clone().json().then(data => {
+                        throw new Error(data.message)
+                    })
                 }
                 return response.json();
             })
@@ -169,7 +197,7 @@
                 location.reload();
             })
             .catch(error => {
-                console.error("Error: ", error);
+                alert(error);
             });
     }
 
@@ -213,6 +241,28 @@
 
     const byteSize = str => new Blob([str]).size;
 
+    const parentDir = window.location.pathname.split("/")[2];
+
+    document.getElementById("uploadForm").addEventListener("submit", function(event) {
+        event.preventDefault(); // Prevent default form submission behavior
+
+        fetch("/api/uploadfile/" + parentDir, {
+            method: "POST",
+            body: new FormData(this)
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Network response was not ok!");
+                }
+            })
+            .then(data => {
+                location.reload();
+            })
+            .catch(error => {
+                alert(error)
+            });
+    });
+
     function createNewFile() {
         const content = document.getElementById("contentInput").value;
         const name = document.getElementById("filenameInput").value;
@@ -238,7 +288,9 @@
         fetch("/api/createfile/" + parentDir, requestOptions)
             .then(response => {
                 if (!response.ok) {
-                    throw new Error("Network response was not ok!");
+                    return response.clone().json().then(data => {
+                        throw new Error(data.message)
+                    })
                 }
                 return response.json();
             })
@@ -246,7 +298,7 @@
                 location.reload();
             })
             .catch(error => {
-                console.error("Error: ", error);
+                alert(error)
             });
     }
 
@@ -274,7 +326,9 @@
         fetch("/api/createfile/" + parentDir, requestOptions)
             .then(response => {
                 if (!response.ok) {
-                    throw new Error("Network response was not ok!");
+                    return response.clone().json().then(data => {
+                        throw new Error(data.message)
+                    })
                 }
                 return response.json();
             })
@@ -282,7 +336,7 @@
                 location.reload();
             })
             .catch(error => {
-                console.error("Error: ", error);
+                alert(error);
             });
     }
 </script>
