@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>{{.}}</title>
+    <title>Web file system</title>
     <style>
         /* Styles for the modal dialog */
         .modal {
@@ -30,7 +30,11 @@
 <h1>Web file system for Frank RG</h1>
 <button id="inputDialogBtn1">Create file</button>
 <button id="inputDialogBtn2">Create directory</button>
-<button>Upload a file</button>
+
+<form id="uploadForm" enctype="multipart/form-data" action="/api/uploadfile" method="post">
+    <input type="file" name="myFile">Upload a file
+    <input type="submit" value="upload">
+</form>
 
 <div id="inputDialogFile" class="modal">
     <div class="modal-content">
@@ -61,7 +65,7 @@
     <tbody>
     {{range .}}
     <tr>
-        <td><a href="{{if .IsDirectory}}/{{end}}{{.Name}}">{{if .IsDirectory}}{{.Name}}/{{else}}{{.Name}}{{end}}</a></td>
+        <td><a href="{{if .IsDirectory}}/dir/{{else}}/file/{{end}}{{.Name}}">{{if .IsDirectory}}{{.Name}}/{{else}}{{.Name}}{{end}}</a></td>
         <td>{{if .IsDirectory}}d{{else}}f{{end}}</td>
         <td>{{if .IsDirectory}}-{{else}}{{.Size}}{{end}}</td>
         <td>{{.ModTime}}</td>
@@ -70,6 +74,16 @@
     </tbody>
 </table>
 <script>
+    // document.getElementById("uploadForm").addEventListener("submit", function(event) {
+    //     // Prevent the default form submission behavior
+    //
+    //     // Perform any form submission processing here
+    //     // For example, you can send the data to a server using fetch() or XMLHttpRequest
+    //
+    //     // After form processing, reload the page
+    //     location.reload();
+    // });
+
     const modalFile = document.getElementById("inputDialogFile");
     const openFileButton = document.getElementById("inputDialogBtn1");
     const confirmFileButton = document.getElementById("confirmInputButton1");
@@ -111,8 +125,7 @@
             name: name,
             size: size,
             content: content,
-            is_dir: false
-            // parentID TODO: know the parentID
+            is_dir: false,
         };
 
         const requestOptions = {
@@ -123,7 +136,9 @@
             body: JSON.stringify(data),
         };
 
-        fetch("/api/createfile", requestOptions)
+        const parentDir = window.location.pathname.split("/")[2]
+
+        fetch("/api/createfile/" + parentDir, requestOptions)
             .then(response => {
                 if (!response.ok) {
                     throw new Error("Network response was not ok!");
@@ -147,7 +162,6 @@
             size: 0,
             content: content,
             is_dir: true
-            // parentID TODO: know the parentID
         };
 
         const requestOptions = {
@@ -158,7 +172,9 @@
             body: JSON.stringify(data),
         };
 
-        fetch("/api/createfile", requestOptions)
+        const parentDir = window.location.pathname.split("/")[2]
+
+        fetch("/api/createfile/" + parentDir, requestOptions)
             .then(response => {
                 if (!response.ok) {
                     throw new Error("Network response was not ok!");

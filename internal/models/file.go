@@ -28,7 +28,6 @@ func NewFile(name string, size int64, modTime time.Time, isDirectory bool, conte
 	var id int
 	_ = DB.QueryRowContext(ctx, query, name, size, modTime, isDirectory, content, parentID).Scan(&id)
 
-	logrus.Infof("file '%s' was successfully added\n", name)
 	return &File{
 		ID:          id,
 		Name:        name,
