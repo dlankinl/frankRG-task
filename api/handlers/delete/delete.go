@@ -4,6 +4,7 @@ import (
 	"FrankRGTask/internal/models"
 	"FrankRGTask/internal/util"
 	"context"
+	"database/sql"
 	"errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/lib/pq"
@@ -37,6 +38,13 @@ func DeleteFileHandler(w http.ResponseWriter, r *http.Request) {
 		`
 
 	rows, err := models.DB.QueryContext(ctx, query, intID)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		logrus.Infof("%s\n", err)
+		util.ErrorJSON(w, errors.New("no dirs were found"), http.StatusNotFound)
+		return
+	}
+
 	if err != nil {
 		logrus.Warnf("%s\n", err)
 		util.ErrorJSON(w, err, http.StatusBadRequest)

@@ -4,7 +4,10 @@ import (
 	"FrankRGTask/internal/models"
 	"FrankRGTask/internal/util"
 	"context"
+	"database/sql"
+	"errors"
 	"github.com/go-chi/chi/v5"
+	"github.com/sirupsen/logrus"
 	"net/http"
 )
 
@@ -23,7 +26,13 @@ func FileHandler(w http.ResponseWriter, r *http.Request) {
 
 	var content []byte
 
-	_ = models.DB.QueryRowContext(ctx, queryContent, filename).Scan(&content)
+	err := models.DB.QueryRowContext(ctx, queryContent, filename).Scan(&content)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		logrus.Infof("%s\n", err)
+		util.ErrorJSON(w, errors.New("no files were found"), http.StatusNotFound)
+		return
+	}
 
 	var resp FileResponse
 

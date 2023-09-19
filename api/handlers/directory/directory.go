@@ -4,6 +4,8 @@ import (
 	"FrankRGTask/internal/models"
 	"FrankRGTask/internal/util"
 	"context"
+	"database/sql"
+	"errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/sirupsen/logrus"
 	"net/http"
@@ -12,8 +14,6 @@ import (
 )
 
 func DirHandler(w http.ResponseWriter, r *http.Request) {
-	fn := "api.handlers.directory.DirHandler"
-
 	dirName := chi.URLParam(r, "name")
 
 	ctx, cancel := context.WithTimeout(context.Background(), models.DBTimeout)
@@ -23,13 +23,25 @@ func DirHandler(w http.ResponseWriter, r *http.Request) {
 
 	var id int
 
-	_ = models.DB.QueryRowContext(ctx, query1, dirName).Scan(&id)
+	err := models.DB.QueryRowContext(ctx, query1, dirName).Scan(&id)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		logrus.Infof("%s\n", err)
+		util.ErrorJSON(w, errors.New("dir wasn't found"), http.StatusNotFound)
+		return
+	}
 
 	query := `SELECT * FROM Files WHERE parentid = $1`
 
 	rows, err := models.DB.QueryContext(ctx, query, id)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		logrus.Infof("%s\n", err)
+		util.ErrorJSON(w, errors.New("no parentDir id found"), http.StatusNotFound)
+		return
+	}
 	if err != nil {
-		logrus.Warnf("%s: %s\n", fn, err)
+		logrus.Warnf("%s\n", err)
 		util.ErrorJSON(w, err, http.StatusBadRequest)
 		return
 	}
@@ -48,7 +60,7 @@ func DirHandler(w http.ResponseWriter, r *http.Request) {
 
 		err = rows.Scan(columns...)
 		if err != nil {
-			logrus.Warnf("%s: %s\n", fn, err)
+			logrus.Warnf("%s\n", err)
 			util.ErrorJSON(w, err, http.StatusBadRequest)
 			return
 		}

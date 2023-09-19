@@ -5,6 +5,7 @@ import (
 	"FrankRGTask/internal/models"
 	"FrankRGTask/internal/util"
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/go-chi/chi/v5"
@@ -26,7 +27,13 @@ func UploadFileHandler(w http.ResponseWriter, r *http.Request) { // TODO: parent
 
 	query := `SELECT id FROM Files WHERE name = $1 AND size = 0`
 
-	_ = models.DB.QueryRowContext(ctx, query, name).Scan(&id)
+	err := models.DB.QueryRowContext(ctx, query, name).Scan(&id)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		logrus.Infof("%s\n", err)
+		util.ErrorJSON(w, errors.New("no files were found"), http.StatusNotFound)
+		return
+	}
 
 	r.ParseMultipartForm(MAX_UPLOAD_SIZE)
 	file, handler, err := r.FormFile("myFile")

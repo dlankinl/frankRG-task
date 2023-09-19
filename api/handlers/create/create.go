@@ -5,25 +5,32 @@ import (
 	"FrankRGTask/internal/models"
 	"FrankRGTask/internal/util"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
-	"github.com/go-chi/chi/v5"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"time"
 )
 
 type FileRequest struct {
-	Name    string `json:"name"`
-	Content string `json:"content"`
-	Size    int64  `json:"size"`
-	IsDir   bool   `json:"is_dir""`
+	Name      string `json:"name"`
+	Content   string `json:"content"`
+	Size      int64  `json:"size"`
+	IsDir     bool   `json:"is_dir"`
+	ParentDir string `json:"parent_dir"`
 }
 
 var file models.File
 
 func CreateFileHandler(w http.ResponseWriter, r *http.Request) {
-	name := chi.URLParam(r, "name")
+	var fileResp FileRequest
+	err := json.NewDecoder(r.Body).Decode(&fileResp)
+	if err != nil {
+		logrus.Warnf("%s\n", err)
+		util.ErrorJSON(w, errors.New("bad json request"), http.StatusBadRequest)
+		return
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), models.DBTimeout)
 	defer cancel()
@@ -32,13 +39,11 @@ func CreateFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	query := `SELECT id FROM Files WHERE name = $1 AND size = 0`
 
-	_ = models.DB.QueryRowContext(ctx, query, name).Scan(&id)
+	err = models.DB.QueryRowContext(ctx, query, fileResp.ParentDir).Scan(&id)
 
-	var fileResp FileRequest
-	err := json.NewDecoder(r.Body).Decode(&fileResp)
-	if err != nil {
-		logrus.Warnf("%s\n", err)
-		util.ErrorJSON(w, errors.New("bad json request"), http.StatusBadRequest)
+	if errors.Is(err, sql.ErrNoRows) {
+		logrus.Infof("%s\n", err)
+		util.ErrorJSON(w, errors.New("no parentDir found"), http.StatusBadRequest)
 		return
 	}
 

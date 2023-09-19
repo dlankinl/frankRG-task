@@ -31,7 +31,7 @@ func Routes() http.Handler {
 	router.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/dir/root", http.StatusPermanentRedirect)
 	})
-	router.Post("/api/createfile/{name}", create.CreateFileHandler)
+	router.Post("/api/createfile", create.CreateFileHandler)
 	router.Post("/api/uploadfile/{name}", upload.UploadFileHandler)
 	router.Post("/api/file", rename.RenameFile)
 	router.Get("/dir/{name}", directory.DirHandler)
