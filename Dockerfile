@@ -10,6 +10,4 @@ RUN go mod download
 
 RUN go build -o /build cmd/server/main.go
 
-EXPOSE 8083
-
 CMD ["/build"]
