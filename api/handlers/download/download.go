@@ -54,10 +54,4 @@ func DownloadFileHandler(w http.ResponseWriter, r *http.Request) {
 		util.ErrorJSON(w, err, http.StatusBadRequest)
 		return
 	}
-
-	util.WriteJSON(w, http.StatusOK, struct {
-		Status string `json:"status"`
-	}{
-		Status: "OK",
-	})
 }

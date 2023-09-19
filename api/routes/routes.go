@@ -34,8 +34,8 @@ func Routes() http.Handler {
 	router.Post("/api/createfile", create.CreateFileHandler)
 	router.Post("/api/uploadfile/{name}", upload.UploadFileHandler)
 	router.Post("/api/file", rename.RenameFile)
+	router.Get("/file/{id}/{name}", file.FileHandler)
 	router.Get("/dir/{name}", directory.DirHandler)
-	router.Get("/file/{name}", file.FileHandler)
 	router.Get("/api/downloadfile/{id}", download.DownloadFileHandler)
 	router.Delete("/api/file/{id}", delete2.DeleteFileHandler)
 

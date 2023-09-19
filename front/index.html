@@ -74,7 +74,7 @@
     <tbody>
     {{range .}}
     <tr>
-        <td><a href="{{if .IsDirectory}}/dir/{{else}}/file/{{end}}{{.Name}}">{{if .IsDirectory}}{{.Name}}/{{else}}{{.Name}}{{end}}</a></td>
+        <td><a href="{{if .IsDirectory}}/dir/{{else}}/file/{{.ID}}/{{end}}{{.Name}}">{{if .IsDirectory}}{{.Name}}/{{else}}{{.Name}}{{end}}</a></td>
         <td>{{if .IsDirectory}}d{{else}}f{{end}}</td>
         <td>{{if .IsDirectory}}-{{else}}{{.Size}}{{end}}</td>
         <td>{{.ModTime}}</td>
