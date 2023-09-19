@@ -7,7 +7,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/sirupsen/logrus"
 	"net/http"
@@ -36,13 +35,13 @@ func DownloadFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	var fileContent FileContent
 
-	res := models.DB.QueryRowContext(ctx, query, intID).Scan(&fileContent.IsDirectory, &fileContent.Content)
-	if errors.Is(res, sql.ErrNoRows) {
+	err = models.DB.QueryRowContext(ctx, query, intID).Scan(&fileContent.IsDirectory, &fileContent.Content)
+	if errors.Is(err, sql.ErrNoRows) {
 		logrus.Warn("no rows found")
+		util.ErrorJSON(w, errors.New("no files were found"), http.StatusNotFound)
 		return
 	}
 
-	fmt.Println(fileContent)
 	if fileContent.IsDirectory {
 		logrus.Infof("try to download directory id=%d\n", intID)
 		util.ErrorJSON(w, errors.New("directories aren't allowed to be downloaded"), http.StatusBadRequest)
@@ -55,4 +54,10 @@ func DownloadFileHandler(w http.ResponseWriter, r *http.Request) {
 		util.ErrorJSON(w, err, http.StatusBadRequest)
 		return
 	}
+
+	util.WriteJSON(w, http.StatusOK, struct {
+		Status string `json:"status"`
+	}{
+		Status: "OK",
+	})
 }

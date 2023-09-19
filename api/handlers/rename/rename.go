@@ -6,6 +6,7 @@ import (
 	"FrankRGTask/internal/util"
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/sirupsen/logrus"
 	"net/http"
 )
@@ -32,10 +33,23 @@ func RenameFile(w http.ResponseWriter, r *http.Request) {
 			WHERE id = $2
 		`
 
-	_, err = models.DB.ExecContext(ctx, query, fileResp.Newname, fileResp.ID)
+	res, err := models.DB.ExecContext(ctx, query, fileResp.Newname, fileResp.ID)
 	if err != nil {
 		logrus.Warnf("%s\n", err)
 		util.ErrorJSON(w, err, http.StatusBadRequest)
+		return
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		logrus.Warnf("%s\n", err)
+		util.ErrorJSON(w, err, http.StatusBadRequest)
+		return
+	}
+
+	if rowsAffected == 0 {
+		logrus.Warnf("%s\n", err)
+		util.ErrorJSON(w, errors.New("nothing found to update"), http.StatusNotFound)
 		return
 	}
 

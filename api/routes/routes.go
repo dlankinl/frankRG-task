@@ -1,10 +1,10 @@
 package routes
 
 import (
-	"FrankRGTask/api/download"
 	"FrankRGTask/api/handlers/create"
 	delete2 "FrankRGTask/api/handlers/delete"
 	"FrankRGTask/api/handlers/directory"
+	"FrankRGTask/api/handlers/download"
 	"FrankRGTask/api/handlers/file"
 	"FrankRGTask/api/handlers/rename"
 	"FrankRGTask/api/handlers/upload"

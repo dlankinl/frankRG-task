@@ -17,7 +17,7 @@ import (
 
 const MAX_UPLOAD_SIZE = 2 * 1024 * 1024 // 2 MB
 
-func UploadFileHandler(w http.ResponseWriter, r *http.Request) { // TODO: parentID
+func UploadFileHandler(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
 
 	ctx, cancel := context.WithTimeout(context.Background(), models.DBTimeout)
@@ -35,7 +35,12 @@ func UploadFileHandler(w http.ResponseWriter, r *http.Request) { // TODO: parent
 		return
 	}
 
-	r.ParseMultipartForm(MAX_UPLOAD_SIZE)
+	err = r.ParseMultipartForm(MAX_UPLOAD_SIZE)
+	if err != nil {
+		logrus.Infof("%s\n", err)
+		util.ErrorJSON(w, err, http.StatusBadRequest)
+		return
+	}
 	file, handler, err := r.FormFile("myFile")
 	if err != nil {
 		logrus.Warnf("error retrieving the file: %s\n", err)
@@ -55,27 +60,3 @@ func UploadFileHandler(w http.ResponseWriter, r *http.Request) { // TODO: parent
 
 	logrus.Infof("file '%s' was successfully uploaded\n", handler.Filename)
 }
-
-//
-//func UploadFileHandler(w http.ResponseWriter, r *http.Request) {
-//	if r.Method != "POST" {
-//		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-//		return
-//	}
-//
-//	r.Body = http.MaxBytesReader(w, r.Body, MAX_UPLOAD_SIZE)
-//	if err := r.ParseMultipartForm(MAX_UPLOAD_SIZE); err != nil {
-//		http.Error(w, "The uploaded file is too big. Please choose an file that's less than 1MB in size", http.StatusBadRequest)
-//		return
-//	}
-//
-//	file, fileHeader, err := r.FormFile("file")
-//	if err != nil {
-//		util.ErrorJSON(w, err, http.StatusBadRequest)
-//		return
-//	}
-//
-//	defer file.Close()
-//
-//	fmt.Println(fileHeader, file)
-//}

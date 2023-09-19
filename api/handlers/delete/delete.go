@@ -62,6 +62,12 @@ func DeleteFileHandler(w http.ResponseWriter, r *http.Request) {
 		idsToDelete = append(idsToDelete, idInner)
 	}
 
+	if len(idsToDelete) == 0 {
+		logrus.Info("no files were found to be deleted")
+		util.ErrorJSON(w, errors.New("no files to delete"), http.StatusNotFound)
+		return
+	}
+
 	deleteQuery := `DELETE FROM files WHERE id = ANY($1::integer[])`
 
 	pgIntArray := pq.Array(idsToDelete)
