@@ -35,7 +35,7 @@ func main() {
 
 	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s", config.DBHost, config.DBPort, config.DBUser, config.DBPassword, config.DBName, config.SSLMode)
 	db := database.ConnectDBAndMigrate(config, connStr)
-	fmt.Println(db)
+
 	filesRepo := file.NewDBConnection(db, txMngr, "postgres")
 	fileHandler.SetRepository(filesRepo)
 

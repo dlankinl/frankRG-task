@@ -3,7 +3,6 @@ package rename
 import (
 	"FrankRGTask/api/fileHandler"
 	_ "FrankRGTask/internal/logger"
-	"FrankRGTask/internal/models"
 	"FrankRGTask/internal/util"
 	"context"
 	"encoding/json"
@@ -25,33 +24,8 @@ func RenameFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), models.DBTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), fileHandler.DBTimeout)
 	defer cancel()
-
-	//query := `UPDATE files
-	//		SET name = $1
-	//		WHERE id = $2
-	//	`
-	//
-	//res, err := models.DB.ExecContext(ctx, query, fileResp.Newname, fileResp.ID)
-	//if err != nil {
-	//	logrus.Warnf("%s\n", err)
-	//	util.ErrorJSON(w, err, http.StatusBadRequest)
-	//	return
-	//}
-	//
-	//rowsAffected, err := res.RowsAffected()
-	//if err != nil {
-	//	logrus.Warnf("%s\n", err)
-	//	util.ErrorJSON(w, err, http.StatusBadRequest)
-	//	return
-	//}
-	//
-	//if rowsAffected == 0 {
-	//	logrus.Warnf("%s\n", err)
-	//	util.ErrorJSON(w, errors.New("nothing found to update"), http.StatusNotFound)
-	//	return
-	//}
 
 	err = fileHandler.Repo.Rename(ctx, fileResp.Newname, fileResp.ID)
 	if err != nil {

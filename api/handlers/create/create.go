@@ -32,7 +32,7 @@ func CreateFileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), models.DBTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), fileHandler.DBTimeout)
 	defer cancel()
 
 	parentID, err := fileHandler.Repo.GetParent(ctx, fileResp.ParentDir)

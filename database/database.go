@@ -22,9 +22,6 @@ func migrateUp(db *sql.DB) error {
 
 	m, err := migrate.NewWithDatabaseInstance(
 		"file://db/migrations", "postgres", driver)
-	//m, err := migrate.New(
-	//	"file://db/migrations",
-	//	"postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable")
 	if err != nil {
 		return err
 	}

@@ -20,20 +20,8 @@ const MAX_UPLOAD_SIZE = 2 * 1024 * 1024 // 2 MB
 func UploadFileHandler(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
 
-	ctx, cancel := context.WithTimeout(context.Background(), models.DBTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), fileHandler.DBTimeout)
 	defer cancel()
-
-	//var id int
-
-	//query := `SELECT id FROM Files WHERE name = $1 AND size = 0`
-	//
-	//err := models.DB.QueryRowContext(ctx, query, name).Scan(&id)
-	//
-	//if errors.Is(err, sql.ErrNoRows) {
-	//	logrus.Infof("%s\n", err)
-	//	util.ErrorJSON(w, errors.New("no files were found"), http.StatusNotFound)
-	//	return
-	//}
 
 	parentID, err := fileHandler.Repo.GetParent(ctx, name)
 	if err != nil {
@@ -61,8 +49,6 @@ func UploadFileHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Println(err)
 	}
-
-	//fileCreated := models.NewFile(handler.Filename, handler.Size, time.Now(), false, fileBytes, id)
 
 	fileNew := models.File{
 		Name:        handler.Filename,

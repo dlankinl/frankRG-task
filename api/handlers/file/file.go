@@ -2,7 +2,6 @@ package file
 
 import (
 	"FrankRGTask/api/fileHandler"
-	"FrankRGTask/internal/models"
 	"FrankRGTask/internal/util"
 	"context"
 	"fmt"
@@ -30,23 +29,8 @@ func FileHandler(w http.ResponseWriter, r *http.Request) {
 
 	logrus.Info("HEREEEEEEE", intID, filename)
 
-	ctx, cancel := context.WithTimeout(context.Background(), models.DBTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), fileHandler.DBTimeout)
 	defer cancel()
-
-	//queryContent := `SELECT Content FROM Files WHERE id = $1`
-	////queryContent := `SELECT Content FROM Files WHERE id = $1`
-	//
-	//var content []byte
-	//
-	//err = models.DB.QueryRowContext(ctx, queryContent, intID).Scan(&content)
-	////err = models.DB.QueryRowContext(ctx, queryContent, fileReq.ID).Scan(&content)
-	//
-	//if errors.Is(err, sql.ErrNoRows) {
-	//	logrus.Infof("%s\n", err)
-	//	util.ErrorJSON(w, errors.New("no files were found"), http.StatusNotFound)
-	//	return
-	//}
-	//
 
 	content, err := fileHandler.Repo.GetContent(ctx, intID)
 	if err != nil {

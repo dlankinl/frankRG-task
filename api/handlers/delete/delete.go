@@ -2,7 +2,6 @@ package delete
 
 import (
 	"FrankRGTask/api/fileHandler"
-	"FrankRGTask/internal/models"
 	"FrankRGTask/internal/util"
 	"context"
 	"errors"
@@ -21,59 +20,8 @@ func DeleteFileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), models.DBTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), fileHandler.DBTimeout)
 	defer cancel()
-
-	//query := `
-	//	WITH RECURSIVE DirectoryHierarchy AS (
-	//	    SELECT id FROM files WHERE id = $1
-	//	    UNION ALL
-	//	    SELECT f.id FROM files f
-	//		INNER JOIN DirectoryHierarchy dh ON f.parentid = dh.id
-	//	)
-	//	SELECT id FROM DirectoryHierarchy;
-	//	`
-	//
-	//rows, err := models.DB.QueryContext(ctx, query, intID)
-	//
-	//if errors.Is(err, sql.ErrNoRows) {
-	//	logrus.Infof("%s\n", err)
-	//	util.ErrorJSON(w, errors.New("no dirs were found"), http.StatusNotFound)
-	//	return
-	//}
-	//
-	//if err != nil {
-	//	logrus.Warnf("%s\n", err)
-	//	util.ErrorJSON(w, err, http.StatusBadRequest)
-	//	return
-	//}
-	//
-	//var idsToDelete []int
-	//for rows.Next() {
-	//	var idInner int
-	//	if err = rows.Scan(&idInner); err != nil {
-	//		logrus.Warnf("%s\n", err)
-	//		util.ErrorJSON(w, err, http.StatusBadRequest)
-	//		return
-	//	}
-	//	idsToDelete = append(idsToDelete, idInner)
-	//}
-	//
-	//if len(idsToDelete) == 0 {
-	//	logrus.Info("no files were found to be deleted")
-	//	util.ErrorJSON(w, errors.New("no files to delete"), http.StatusNotFound)
-	//	return
-	//}
-	//
-	//deleteQuery := `DELETE FROM files WHERE id = ANY($1::integer[])`
-	//
-	//pgIntArray := pq.Array(idsToDelete)
-	//_, err = models.DB.ExecContext(ctx, deleteQuery, pgIntArray)
-	//if err != nil {
-	//	logrus.Warnf("%s\n", err)
-	//	util.ErrorJSON(w, err, http.StatusBadRequest)
-	//	return
-	//}
 
 	deletedRows, err := fileHandler.Repo.DeleteByID(ctx, intID)
 
