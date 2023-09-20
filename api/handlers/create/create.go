@@ -1,11 +1,11 @@
 package create
 
 import (
+	"FrankRGTask/api/fileHandler"
 	_ "FrankRGTask/internal/logger"
 	"FrankRGTask/internal/models"
 	"FrankRGTask/internal/util"
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"github.com/sirupsen/logrus"
@@ -35,20 +35,36 @@ func CreateFileHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), models.DBTimeout)
 	defer cancel()
 
-	var id int
+	parentID, err := fileHandler.Repo.GetParent(ctx, fileResp.ParentDir)
 
-	query := `SELECT id FROM Files WHERE name = $1 AND size = 0`
-
-	err = models.DB.QueryRowContext(ctx, query, fileResp.ParentDir).Scan(&id)
-
-	if errors.Is(err, sql.ErrNoRows) {
+	if err != nil {
 		logrus.Infof("%s\n", err)
-		util.ErrorJSON(w, errors.New("no parentDir found"), http.StatusBadRequest)
+		util.ErrorJSON(w, err, http.StatusBadRequest)
 		return
 	}
 
-	fileCreated := models.NewFile(fileResp.Name, fileResp.Size, time.Now(), fileResp.IsDir, []byte(fileResp.Content), id)
-	util.WriteJSON(w, http.StatusOK, fileCreated)
+	file = models.File{
+		Name:        fileResp.Name,
+		Size:        fileResp.Size,
+		ModTime:     time.Now(),
+		IsDirectory: fileResp.IsDir,
+		Content:     []byte(fileResp.Content),
+		ParentID:    parentID,
+	}
+
+	err = fileHandler.Repo.Create(ctx, &file)
+
+	if err != nil {
+		logrus.Infof("%s\n", err)
+		util.ErrorJSON(w, err, http.StatusBadRequest)
+		return
+	}
+
+	util.WriteJSON(w, http.StatusOK, struct {
+		Status string
+	}{
+		Status: "OK",
+	})
 
 	logrus.Infof("file '%s' was successfully added\n", fileResp.Name)
 }

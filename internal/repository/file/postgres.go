@@ -11,22 +11,21 @@ import (
 	"reflect"
 )
 
-type postgresDB struct {
+type PostgresDB struct {
 	db         *sql.DB
 	transactor transactor // TODO: transactor
 	slug       string
-	hostname   string
 }
 
-func NewDBConnection(db *sql.DB, slug string, hostname string) *postgresDB {
-	return &postgresDB{
-		db:       db,
-		slug:     slug,
-		hostname: hostname,
+func NewDBConnection(db *sql.DB, transactor transactor, slug string) *PostgresDB {
+	return &PostgresDB{
+		db:         db,
+		transactor: transactor,
+		slug:       slug,
 	}
 }
 
-func (repo *postgresDB) RegisterTX(ctx context.Context) error {
+func (repo *PostgresDB) RegisterTX(ctx context.Context) error {
 	_, err := repo.transactor.GetTx(ctx, repo.slug)
 	if errors.Is(err, trans.NoTransactionErr) {
 		tx, err := repo.db.BeginTx(ctx, nil)
@@ -41,7 +40,7 @@ func (repo *postgresDB) RegisterTX(ctx context.Context) error {
 	return nil
 }
 
-func (repo *postgresDB) getExecutor(ctx context.Context) (queryExecutor, error) {
+func (repo *PostgresDB) getExecutor(ctx context.Context) (queryExecutor, error) {
 	tx, err := repo.transactor.GetTx(ctx, repo.slug)
 	if errors.Is(err, trans.NoBeginOfTransactionErr) || errors.Is(err, trans.NoTransactionErr) {
 		return repo.db, nil
@@ -56,7 +55,7 @@ func (repo *postgresDB) getExecutor(ctx context.Context) (queryExecutor, error) 
 	return casted, nil
 }
 
-func (repo *postgresDB) Create(ctx context.Context, file models.File) error {
+func (repo *PostgresDB) Create(ctx context.Context, file *models.File) error {
 	executor, err := repo.getExecutor(ctx)
 	if err != nil {
 		return err
@@ -64,7 +63,7 @@ func (repo *postgresDB) Create(ctx context.Context, file models.File) error {
 	return create(executor, ctx, file)
 }
 
-func create(executor queryExecutor, ctx context.Context, file models.File) error {
+func create(executor queryExecutor, ctx context.Context, file *models.File) error {
 	query := `INSERT INTO Files(name, size, modtime, isdirectory, content, parentid) 
 					VALUES ($1, $2, $3, $4, $5, $6)`
 
@@ -73,7 +72,7 @@ func create(executor queryExecutor, ctx context.Context, file models.File) error
 	return nil
 }
 
-func (repo *postgresDB) GetParent(ctx context.Context, name string) (int, error) {
+func (repo *PostgresDB) GetParent(ctx context.Context, name string) (int, error) {
 	query := `SELECT id FROM Files WHERE name = $1 AND size = 0`
 	row := repo.db.QueryRowContext(ctx, query, name)
 	var id int
@@ -88,22 +87,7 @@ func (repo *postgresDB) GetParent(ctx context.Context, name string) (int, error)
 	return id, nil
 }
 
-func (repo *postgresDB) GetContent(ctx context.Context, id int) ([]byte, error) {
-	query := `SELECT Content FROM Files WHERE id = $1`
-	row := repo.db.QueryRowContext(ctx, query, id)
-	var content []byte
-	err := row.Scan(&content)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, errors.New("entity doesn't exist")
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	return content, nil
-}
-
-func (repo *postgresDB) Rename(ctx context.Context, newName string, id int) error {
+func (repo *PostgresDB) Rename(ctx context.Context, newName string, id int) error {
 	executor, err := repo.getExecutor(ctx)
 	if err != nil {
 		return err
@@ -134,7 +118,7 @@ func rename(executor queryExecutor, ctx context.Context, newName string, id int)
 	return nil
 }
 
-func (repo *postgresDB) FindFilesRecursive(ctx context.Context, id int) ([]int, error) {
+func (repo *PostgresDB) FindFilesRecursive(ctx context.Context, id int) ([]int, error) {
 	query := `
 		WITH RECURSIVE DirectoryHierarchy AS (
 		    SELECT id FROM files WHERE id = $1           
@@ -166,21 +150,21 @@ func (repo *postgresDB) FindFilesRecursive(ctx context.Context, id int) ([]int, 
 	return idsToDelete, nil
 }
 
-func (repo *postgresDB) DeleteByID(ctx context.Context, id int) error {
+func (repo *PostgresDB) DeleteByID(ctx context.Context, id int) (int, error) {
 	executor, err := repo.getExecutor(ctx)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	ids, err := repo.FindFilesRecursive(ctx, id)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	return deleteByID(executor, ctx, ids)
 }
 
-func deleteByID(executor queryExecutor, ctx context.Context, ids []int) error {
+func deleteByID(executor queryExecutor, ctx context.Context, ids []int) (int, error) {
 	if len(ids) == 0 {
-		return nil
+		return 0, nil
 	}
 
 	deleteQuery := `DELETE FROM files WHERE id = ANY($1::integer[])`
@@ -188,12 +172,12 @@ func deleteByID(executor queryExecutor, ctx context.Context, ids []int) error {
 	pgIntArray := pq.Array(ids)
 	_, err := executor.ExecContext(ctx, deleteQuery, pgIntArray)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	return nil
+	return len(ids), nil
 }
 
-func (repo *postgresDB) GetFilesInDir(ctx context.Context, id int) ([]models.File, error) {
+func (repo *PostgresDB) GetFilesInDir(ctx context.Context, id int) ([]models.File, error) {
 	query := `SELECT * FROM Files WHERE parentid = $1`
 
 	rows, err := repo.db.QueryContext(ctx, query, id)
@@ -227,7 +211,7 @@ func (repo *postgresDB) GetFilesInDir(ctx context.Context, id int) ([]models.Fil
 	return filesList, err
 }
 
-func (repo *postgresDB) Content(ctx context.Context, id int) ([]byte, error) {
+func (repo *PostgresDB) GetContent(ctx context.Context, id int) ([]byte, error) {
 	query := `SELECT isdirectory, content FROM files WHERE id = $1`
 
 	row := repo.db.QueryRowContext(ctx, query, id)

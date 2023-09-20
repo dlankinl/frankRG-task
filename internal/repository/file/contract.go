@@ -7,7 +7,7 @@ import (
 )
 
 type transactor interface {
-	GetTx(ctx context.Context, reposSlug string) (trans.Transactor, error)
+	GetTx(ctx context.Context, reposSlug string) (trans.Transaction, error)
 	SetTx(ctx context.Context, reposSlug string, tx trans.Transaction) error
 }
 
