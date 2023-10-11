@@ -23,14 +23,10 @@ func NewDBConnection(db *sql.DB, slug string) *PostgresDB {
 }
 
 func (repo *PostgresDB) Create(ctx context.Context, file *models.File) error {
-	return create(repo.db, ctx, file)
-}
-
-func create(db *sql.DB, ctx context.Context, file *models.File) error {
 	query := `INSERT INTO Files(name, size, modtime, isdirectory, content, parentid) 
 					VALUES ($1, $2, $3, $4, $5, $6)`
 
-	err := db.QueryRowContext(ctx, query, file.Name, file.Size, file.ModTime, file.IsDirectory, file.Content, file.ParentID)
+	err := repo.db.QueryRowContext(ctx, query, file.Name, file.Size, file.ModTime, file.IsDirectory, file.Content, file.ParentID)
 	if err != nil {
 		return err.Err()
 	}
@@ -54,16 +50,12 @@ func (repo *PostgresDB) GetParent(ctx context.Context, name string) (int, error)
 }
 
 func (repo *PostgresDB) Rename(ctx context.Context, newName string, id int) error {
-	return rename(repo.db, ctx, newName, id)
-}
-
-func rename(db *sql.DB, ctx context.Context, newName string, id int) error {
 	query := `UPDATE files
 			SET name = $1
 			WHERE id = $2
 		`
 
-	res, err := db.ExecContext(ctx, query, newName, id)
+	res, err := repo.db.ExecContext(ctx, query, newName, id)
 	if err != nil {
 		return err
 	}
@@ -117,10 +109,7 @@ func (repo *PostgresDB) DeleteByID(ctx context.Context, id int) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return deleteByID(repo.db, ctx, ids)
-}
 
-func deleteByID(db *sql.DB, ctx context.Context, ids []int) (int, error) {
 	if len(ids) == 0 {
 		return 0, nil
 	}
@@ -128,7 +117,7 @@ func deleteByID(db *sql.DB, ctx context.Context, ids []int) (int, error) {
 	deleteQuery := `DELETE FROM files WHERE id = ANY($1::integer[])`
 
 	pgIntArray := pq.Array(ids)
-	_, err := db.ExecContext(ctx, deleteQuery, pgIntArray)
+	_, err = repo.db.ExecContext(ctx, deleteQuery, pgIntArray)
 	if err != nil {
 		return 0, err
 	}
