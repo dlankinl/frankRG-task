@@ -33,7 +33,7 @@
 <button id="inputDialogBtn2">Create directory</button>
 
 <form id="uploadForm" enctype="multipart/form-data" method="post">
-    <input type="file" name="myFile">
+    <input type="file" name="myFile" id="uploadedFile">
     <input type="submit" value="Загрузить">
 </form>
 
@@ -86,6 +86,10 @@
     </tbody>
 </table>
 <script>
+    // function ReadFile() {
+    //     var file =
+    // }
+
     const filesTable = document.getElementById("files");
     var dataID;
 
@@ -247,21 +251,50 @@
     document.getElementById("uploadForm").addEventListener("submit", function(event) {
         event.preventDefault(); // Prevent default form submission behavior
 
-        fetch("/api/uploadfile/" + parentDir, {
-            method: "POST",
-            body: new FormData(this)
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error("Network response was not ok!");
-                }
-            })
-            .then(data => {
-                location.reload();
-            })
-            .catch(error => {
-                alert(error)
-            });
+        let file = document.getElementById("uploadedFile");
+        if (file.files.length) {
+            let reader = new FileReader();
+
+            reader.onload = function(e) {
+                console.log(e.target.result);
+                let content = e.target.result;
+
+                const data = {
+                    name: file.files[0].name,
+                    size: byteSize(content),
+                    content: content,
+                    is_dir: false,
+                    parent_dir: parentDir,
+                };
+
+                const requestOptions = {
+                    method: "POST",
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data),
+                };
+
+                fetch("/api/createfile", requestOptions)
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.clone().json().then(data => {
+                                throw new Error(data.message)
+                            })
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log(data);
+                        location.reload();
+                    })
+                    .catch(error => {
+                        alert(error)
+                    });
+            }
+
+            reader.readAsBinaryString(file.files[0]);
+        }
     });
 
     function createNewFile() {
