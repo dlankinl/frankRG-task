@@ -7,7 +7,6 @@ import (
 	"FrankRGTask/database"
 	_ "FrankRGTask/internal/logger"
 	"FrankRGTask/internal/repository/file"
-	"FrankRGTask/pkg/transactor"
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"net/http"
@@ -31,12 +30,12 @@ func main() {
 		logrus.Fatalf("%s: %s\n", fn, err)
 	}
 
-	txMngr := transactor.NewTransactor()
+	//txMngr := transactor.NewTransactor()
 
 	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s", config.DBHost, config.DBPort, config.DBUser, config.DBPassword, config.DBName, config.SSLMode)
 	db := database.ConnectDBAndMigrate(config, connStr)
 
-	filesRepo := file.NewDBConnection(db, txMngr, "postgres")
+	filesRepo := file.NewDBConnection(db, "postgres")
 	fileHandler.SetRepository(filesRepo)
 
 	address := fmt.Sprintf("%s:%s", config.ServerHost, config.ServerPort)
