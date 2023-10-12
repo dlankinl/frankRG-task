@@ -3,7 +3,6 @@ package file
 import (
 	"FrankRGTask/internal/models"
 	errs "FrankRGTask/pkg/errors"
-	trans "FrankRGTask/pkg/transactor"
 	"context"
 	"database/sql"
 	"errors"
@@ -12,62 +11,23 @@ import (
 )
 
 type PostgresDB struct {
-	db         *sql.DB
-	transactor transactor // TODO: transactor
-	slug       string
+	db *sql.DB
 }
 
-func NewDBConnection(db *sql.DB, transactor transactor, slug string) *PostgresDB {
+func NewDBConnection(db *sql.DB) *PostgresDB {
 	return &PostgresDB{
-		db:         db,
-		transactor: transactor,
-		slug:       slug,
+		db: db,
 	}
-}
-
-func (repo *PostgresDB) RegisterTX(ctx context.Context) error {
-	_, err := repo.transactor.GetTx(ctx, repo.slug)
-	if errors.Is(err, trans.NoTransactionErr) {
-		tx, err := repo.db.BeginTx(ctx, nil)
-		if err != nil {
-			return err
-		}
-		err = repo.transactor.SetTx(ctx, repo.slug, tx)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (repo *PostgresDB) getExecutor(ctx context.Context) (queryExecutor, error) {
-	tx, err := repo.transactor.GetTx(ctx, repo.slug)
-	if errors.Is(err, trans.NoBeginOfTransactionErr) || errors.Is(err, trans.NoTransactionErr) {
-		return repo.db, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	casted, status := tx.(*sql.Tx)
-	if !status {
-		return nil, err
-	}
-	return casted, nil
 }
 
 func (repo *PostgresDB) Create(ctx context.Context, file *models.File) error {
-	executor, err := repo.getExecutor(ctx)
-	if err != nil {
-		return err
-	}
-	return create(executor, ctx, file)
-}
-
-func create(executor queryExecutor, ctx context.Context, file *models.File) error {
 	query := `INSERT INTO Files(name, size, modtime, isdirectory, content, parentid) 
 					VALUES ($1, $2, $3, $4, $5, $6)`
 
-	_ = executor.QueryRowContext(ctx, query, file.Name, file.Size, file.ModTime, file.IsDirectory, file.Content, file.ParentID)
+	err := repo.db.QueryRowContext(ctx, query, file.Name, file.Size, file.ModTime, file.IsDirectory, file.Content, file.ParentID)
+	if err != nil {
+		return err.Err()
+	}
 
 	return nil
 }
@@ -88,20 +48,12 @@ func (repo *PostgresDB) GetParent(ctx context.Context, name string) (int, error)
 }
 
 func (repo *PostgresDB) Rename(ctx context.Context, newName string, id int) error {
-	executor, err := repo.getExecutor(ctx)
-	if err != nil {
-		return err
-	}
-	return rename(executor, ctx, newName, id)
-}
-
-func rename(executor queryExecutor, ctx context.Context, newName string, id int) error {
 	query := `UPDATE files
 			SET name = $1
 			WHERE id = $2
 		`
 
-	res, err := executor.ExecContext(ctx, query, newName, id)
+	res, err := repo.db.ExecContext(ctx, query, newName, id)
 	if err != nil {
 		return err
 	}
@@ -151,18 +103,11 @@ func (repo *PostgresDB) FindFilesRecursive(ctx context.Context, id int) ([]int, 
 }
 
 func (repo *PostgresDB) DeleteByID(ctx context.Context, id int) (int, error) {
-	executor, err := repo.getExecutor(ctx)
-	if err != nil {
-		return 0, err
-	}
 	ids, err := repo.FindFilesRecursive(ctx, id)
 	if err != nil {
 		return 0, err
 	}
-	return deleteByID(executor, ctx, ids)
-}
 
-func deleteByID(executor queryExecutor, ctx context.Context, ids []int) (int, error) {
 	if len(ids) == 0 {
 		return 0, nil
 	}
@@ -170,7 +115,7 @@ func deleteByID(executor queryExecutor, ctx context.Context, ids []int) (int, er
 	deleteQuery := `DELETE FROM files WHERE id = ANY($1::integer[])`
 
 	pgIntArray := pq.Array(ids)
-	_, err := executor.ExecContext(ctx, deleteQuery, pgIntArray)
+	_, err = repo.db.ExecContext(ctx, deleteQuery, pgIntArray)
 	if err != nil {
 		return 0, err
 	}
