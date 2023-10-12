@@ -32,6 +32,7 @@ func migrateUp(db *sql.DB) error {
 }
 
 func ConnectDBAndMigrate(config config.Config, connStr string) *sql.DB {
+	//db, err := pgx.Connect(context.Background(), connStr)
 	db, err := sql.Open(config.DBDriver, connStr)
 	if err != nil {
 		logrus.Fatalf("%s\n", err)
