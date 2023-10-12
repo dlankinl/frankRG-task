@@ -1,8 +1,8 @@
 package file
 
 import (
+	errs "FrankRGTask/internal/errors"
 	"FrankRGTask/internal/models"
-	errs "FrankRGTask/pkg/errors"
 	"context"
 	"database/sql"
 	"errors"
@@ -14,8 +14,8 @@ type PostgresDB struct {
 	db *sql.DB
 }
 
-func NewDBConnection(db *sql.DB) *PostgresDB {
-	return &PostgresDB{
+func NewDBConnection(db *sql.DB) PostgresDB {
+	return PostgresDB{
 		db: db,
 	}
 }
