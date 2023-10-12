@@ -39,11 +39,17 @@ func (s service) Rename() http.HandlerFunc {
 			return
 		}
 
-		util.WriteJSON(w, http.StatusOK, struct {
+		err = util.WriteJSON(w, http.StatusOK, struct {
 			Status string `json:"status"`
 		}{
 			Status: "OK",
 		})
+		if err != nil {
+			logrus.Infof("error while writing json response: %s\n", err)
+			util.ErrorJSON(w, err, http.StatusBadRequest)
+			return
+		}
+
 		logrus.Infof("file with id=%d was successfully renamed on '%s'\n", fileReq.ID, fileReq.Newname)
 	}
 }

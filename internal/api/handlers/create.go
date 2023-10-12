@@ -2,7 +2,6 @@ package handlers
 
 import (
 	_ "FrankRGTask/internal/logger"
-	"FrankRGTask/internal/models"
 	fileService "FrankRGTask/internal/service"
 	"FrankRGTask/internal/util"
 	"context"
@@ -11,8 +10,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"net/http"
 )
-
-var file models.File
 
 func (s service) Create() http.HandlerFunc {
 	type FileRequest struct {
@@ -48,11 +45,16 @@ func (s service) Create() http.HandlerFunc {
 			return
 		}
 
-		util.WriteJSON(w, http.StatusOK, struct {
+		err = util.WriteJSON(w, http.StatusOK, struct {
 			Status string
 		}{
 			Status: "OK",
 		})
+		if err != nil {
+			logrus.Infof("error while writing json response: %s\n", err)
+			util.ErrorJSON(w, err, http.StatusBadRequest)
+			return
+		}
 
 		logrus.Infof("file '%s' was successfully added\n", fileReq.Name)
 	}
