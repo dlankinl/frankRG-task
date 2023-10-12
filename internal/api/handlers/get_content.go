@@ -9,7 +9,7 @@ import (
 	"strconv"
 )
 
-func (s service) GetContent(w http.ResponseWriter, r *http.Request) {
+func (s Service) GetContent(w http.ResponseWriter, r *http.Request) {
 	type FileResponse struct {
 		Filename string `json:"filename"`
 		ID       int    `json:"id"`

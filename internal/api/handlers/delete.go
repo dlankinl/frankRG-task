@@ -10,7 +10,7 @@ import (
 	"strconv"
 )
 
-func (s service) Delete(w http.ResponseWriter, r *http.Request) {
+func (s Service) Delete(w http.ResponseWriter, r *http.Request) {
 	type FileRequest struct {
 		ID int
 	}

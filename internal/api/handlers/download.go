@@ -12,7 +12,7 @@ import (
 	"strconv"
 )
 
-func (s service) Download(w http.ResponseWriter, r *http.Request) {
+func (s Service) Download(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	intID, err := strconv.Atoi(id)
 	if err != nil {

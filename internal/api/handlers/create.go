@@ -10,7 +10,7 @@ import (
 	"net/http"
 )
 
-func (s service) Create(w http.ResponseWriter, r *http.Request) {
+func (s Service) Create(w http.ResponseWriter, r *http.Request) {
 	type FileRequest struct {
 		Name      string `json:"name"`
 		Content   string `json:"content"`
