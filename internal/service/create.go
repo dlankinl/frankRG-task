@@ -4,6 +4,7 @@ import (
 	_ "FrankRGTask/internal/logger"
 	"FrankRGTask/internal/models"
 	"context"
+	"fmt"
 	"time"
 )
 
@@ -18,7 +19,7 @@ type CreateParams struct {
 func (s Service) Create(ctx context.Context, params CreateParams) error {
 	parentID, err := s.repo.GetParent(ctx, params.ParentDir)
 	if err != nil {
-		return err
+		return fmt.Errorf("getting id of parent directory: %w", err)
 	}
 
 	file := models.File{
@@ -32,7 +33,7 @@ func (s Service) Create(ctx context.Context, params CreateParams) error {
 
 	err = s.repo.Create(ctx, &file)
 	if err != nil {
-		return err
+		return fmt.Errorf("creating file/directory: %w", err)
 	}
 
 	return nil

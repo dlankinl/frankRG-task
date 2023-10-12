@@ -3,6 +3,7 @@ package service
 import (
 	"FrankRGTask/internal/models"
 	"context"
+	"fmt"
 	"time"
 )
 
@@ -14,10 +15,10 @@ type UploadParams struct {
 	ParentDir   string
 }
 
-func (s Service) Upload(ctx context.Context, params UploadParams) error {
+func (s Service) Upload(ctx context.Context, params UploadParams) (*models.File, error) {
 	parentID, err := s.repo.GetParent(ctx, params.ParentDir)
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("getting id of parent directory: %w", err)
 	}
 
 	file := models.File{
@@ -31,8 +32,8 @@ func (s Service) Upload(ctx context.Context, params UploadParams) error {
 
 	err = s.repo.Create(ctx, &file)
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("creating file/directory: %w", err)
 	}
 
-	return nil
+	return &file, nil
 }

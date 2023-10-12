@@ -9,12 +9,15 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/sirupsen/logrus"
 	"net/http"
+	"time"
 )
 
 func Serve(addr string, router *chi.Mux) error {
 	srv := &http.Server{
-		Addr:    addr,
-		Handler: router,
+		Addr:        addr,
+		Handler:     router,
+		ReadTimeout: time.Second * 4,
+		IdleTimeout: time.Second * 60,
 	}
 
 	logrus.Infof("server is listening on %s address", addr)
@@ -33,7 +36,15 @@ func main() {
 	db := database.ConnectDBAndMigrate(cfg, connStr)
 
 	router := chi.NewRouter()
-	handlers.Register(router, db)
+	handler := handlers.NewHandler(db)
+
+	router.Post("/api/createfile/", handler.Create)
+	router.Post("/api/uploadfile/{name}", handler.Upload)
+	router.Post("/api/file", handler.Rename)
+	router.Get("/file/{id}/{name}", handler.GetContent)
+	router.Get("/dir/{name}", handler.ListDirFiles)
+	router.Get("/api/downloadfile/{id}", handler.Download)
+	router.Delete("/api/file/{id}", handler.Delete)
 
 	address := fmt.Sprintf("%s:%s", cfg.ServerHost, cfg.ServerPort)
 
