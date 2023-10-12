@@ -11,14 +11,12 @@ import (
 )
 
 type PostgresDB struct {
-	db   *sql.DB
-	slug string
+	db *sql.DB
 }
 
-func NewDBConnection(db *sql.DB, slug string) *PostgresDB {
+func NewDBConnection(db *sql.DB) *PostgresDB {
 	return &PostgresDB{
-		db:   db,
-		slug: slug,
+		db: db,
 	}
 }
 
