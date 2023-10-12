@@ -13,7 +13,7 @@ import (
 
 const MAX_UPLOAD_SIZE = 2 * 1024 * 1024 // 2 MB
 
-func (s service) Upload(w http.ResponseWriter, r *http.Request) {
+func (s Service) Upload(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
 
 	err := r.ParseMultipartForm(MAX_UPLOAD_SIZE)

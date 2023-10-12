@@ -5,6 +5,8 @@ import (
 	"FrankRGTask/database"
 	"FrankRGTask/internal/api/handlers"
 	_ "FrankRGTask/internal/logger"
+	fileRepo "FrankRGTask/internal/repository/file"
+	fileService "FrankRGTask/internal/service"
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/sirupsen/logrus"
@@ -36,7 +38,11 @@ func main() {
 	db := database.ConnectDBAndMigrate(cfg, connStr)
 
 	router := chi.NewRouter()
-	handler := handlers.NewHandler(db)
+
+	repo := fileRepo.NewDBConnection(db)
+	service := fileService.NewService(repo)
+
+	handler := handlers.NewHandler(service)
 
 	router.Post("/api/createfile/", handler.Create)
 	router.Post("/api/uploadfile/{name}", handler.Upload)

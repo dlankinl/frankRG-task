@@ -1,17 +1,16 @@
 package handlers
 
-import (
-	fileRepo "FrankRGTask/internal/repository/file"
-	fileService "FrankRGTask/internal/service"
-	"database/sql"
-)
+import fileService "FrankRGTask/internal/service"
 
-type service struct {
+type FileService interface {
+}
+
+type Service struct {
 	fileService fileService.Service
 }
 
-func NewHandler(db *sql.DB) Handler {
-	return service{
-		fileService: fileService.NewService(fileRepo.NewDBConnection(db)),
+func NewHandler(service fileService.Service) Service {
+	return Service{
+		fileService: service,
 	}
 }
