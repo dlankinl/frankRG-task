@@ -46,7 +46,13 @@ func (s service) GetContent() http.HandlerFunc {
 		resp.Content = string(content)
 		resp.Filename = filename
 
-		util.WriteJSON(w, http.StatusOK, resp)
+		err = util.WriteJSON(w, http.StatusOK, resp)
+		if err != nil {
+			logrus.Infof("error while writing json response: %s\n", err)
+			util.ErrorJSON(w, err, http.StatusBadRequest)
+			return
+		}
+
 		logrus.Infof("successfully got content of %s file\n", filename)
 	}
 }

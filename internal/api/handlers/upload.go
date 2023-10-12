@@ -61,7 +61,12 @@ func (s service) Upload() http.HandlerFunc {
 			ParentDir:   name,
 		})
 
-		util.WriteJSON(w, http.StatusOK, fileNew)
+		err = util.WriteJSON(w, http.StatusOK, fileNew)
+		if err != nil {
+			logrus.Infof("error while writing json response: %s\n", err)
+			util.ErrorJSON(w, err, http.StatusBadRequest)
+			return
+		}
 
 		logrus.Infof("file '%s' was successfully uploaded\n", handler.Filename)
 	}

@@ -38,7 +38,7 @@ func (s service) Delete() http.HandlerFunc {
 			return
 		}
 
-		util.WriteJSON(
+		err = util.WriteJSON(
 			w,
 			http.StatusOK,
 			struct {
@@ -49,6 +49,12 @@ func (s service) Delete() http.HandlerFunc {
 				DeletedRows: deletedRows,
 			},
 		)
+		if err != nil {
+			logrus.Infof("error while writing json response: %s\n", err)
+			util.ErrorJSON(w, err, http.StatusBadRequest)
+			return
+		}
+
 		logrus.Infof("successfully deleted %d rows\n", deletedRows)
 	}
 }
