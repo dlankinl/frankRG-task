@@ -31,7 +31,7 @@ func (s Service) Create(ctx context.Context, params CreateParams) error {
 		ParentID:    parentID,
 	}
 
-	err = s.repo.Create(ctx, &file)
+	err = s.repo.Create(ctx, &file, nil)
 	if err != nil {
 		return fmt.Errorf("creating file/directory: %w", err)
 	}

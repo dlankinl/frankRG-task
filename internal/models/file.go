@@ -2,6 +2,7 @@ package models
 
 import (
 	_ "FrankRGTask/internal/logger"
+	"database/sql"
 	"time"
 )
 
@@ -13,4 +14,5 @@ type File struct {
 	IsDirectory bool
 	Content     []byte
 	ParentID    int
+	Path        sql.NullString
 }
