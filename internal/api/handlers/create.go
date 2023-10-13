@@ -32,6 +32,7 @@ func (s Service) Create(w http.ResponseWriter, r *http.Request) {
 		Size:        fileReq.Size,
 		IsDirectory: fileReq.IsDir,
 		Content:     []byte(fileReq.Content),
+		ParentDir:   fileReq.ParentDir,
 	})
 
 	if err != nil {

@@ -47,27 +47,30 @@ func (repo *PostgresDB) Create(ctx context.Context, file *models.File, fileReade
 		return fmt.Errorf("creating large object: %w", err)
 	}
 
-	lo, err := loStorage.Open(ctx, loId, pgx.LargeObjectModeWrite)
-	if err != nil {
-		return fmt.Errorf("opening large object: %w", err)
+	var query string
+	if fileReader != nil {
+		lo, err := loStorage.Open(ctx, loId, pgx.LargeObjectModeWrite)
+		if err != nil {
+			return fmt.Errorf("opening large object: %w", err)
+		}
+
+		hash := sha256.New()
+		teeReader := io.TeeReader(fileReader, hash)
+
+		_, err = io.Copy(lo, teeReader)
+		if err != nil {
+			return fmt.Errorf("copying data to db large object from file: %w", err)
+		}
 	}
 
-	hash := sha256.New()
-	teeReader := io.TeeReader(fileReader, hash)
-
-	_, err = io.Copy(lo, teeReader)
-	if err != nil {
-		return fmt.Errorf("copying data to db large object from file: %w", err)
-	}
-
-	query := `
-		INSERT INTO File_Data(hash, data_oid)
-		VALUES ($1, $2)
-		RETURNING id
-	`
+	query = `
+			INSERT INTO File_Data(hash, data_oid)
+			VALUES ($1, $2)
+			RETURNING id
+		`
 
 	var dataId int
-	err = repo.db.QueryRow(ctx, query, base64.URLEncoding.EncodeToString(hash.Sum(nil)), loId).Scan(&dataId)
+	err = repo.db.QueryRow(ctx, query, base64.URLEncoding.EncodeToString(file.Content), loId).Scan(&dataId)
 	if err != nil {
 		return fmt.Errorf("inserting file data: %w", err)
 	}
@@ -90,7 +93,8 @@ func (repo *PostgresDB) Create(ctx context.Context, file *models.File, fileReade
 }
 
 func (repo *PostgresDB) GetParent(ctx context.Context, name string) (int, error) {
-	query := `SELECT id FROM Files WHERE name = $1 AND size = 0`
+	query := `SELECT id FROM Files 
+          		WHERE name = $1 AND size = 0 AND isdirectory = true`
 	row := repo.db.QueryRow(ctx, query, name)
 	var id int
 	err := row.Scan(&id)
@@ -244,18 +248,46 @@ func (repo *PostgresDB) GetFilesInDir(ctx context.Context, id int) ([]models.Fil
 }
 
 func (repo *PostgresDB) GetContent(ctx context.Context, id int) ([]byte, error) {
-	query := `SELECT isdirectory, content FROM files WHERE id = $1`
-
-	row := repo.db.QueryRow(ctx, query, id)
-	var content []byte
-	var isDirectory bool
-	err := row.Scan(&isDirectory, &content)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, errs.NoFilesWereFoundErr
-	}
-	if isDirectory {
-		return nil, errs.TypeNotFileErr
+	type FileData struct {
+		IsDirectory bool
+		Content     []byte
 	}
 
-	return content, nil
+	tx, err := repo.db.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin tx: %w", err)
+	}
+
+	defer func() {
+		if err != nil {
+			rollbackErr := tx.Rollback(ctx)
+			if rollbackErr != nil {
+				err = fmt.Errorf("rollback error: %w", rollbackErr)
+			}
+		}
+	}()
+
+	query := `
+		SELECT fd.data_oid, f.isdirectory, fd.hash 
+		FROM files f 
+		INNER JOIN file_data fd
+			ON fd.id = f.file_data_id
+		WHERE fd.id = $1
+	`
+
+	var loId uint32
+	var FData FileData
+	var tmp string
+	err = repo.db.QueryRow(ctx, query, id).Scan(
+		&loId,
+		&FData.IsDirectory,
+		&tmp,
+	)
+
+	FData.Content, err = base64.URLEncoding.DecodeString(tmp)
+	if err != nil {
+		return nil, fmt.Errorf("content decode: %w", err)
+	}
+
+	return FData.Content, nil
 }

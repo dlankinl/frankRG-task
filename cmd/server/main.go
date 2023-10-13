@@ -35,7 +35,7 @@ func main() {
 	}
 
 	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s", cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName, cfg.SSLMode)
-	db := database.ConnectDBAndMigrate(cfg, connStr)
+	db := database.ConnectDB(connStr)
 
 	router := chi.NewRouter()
 
@@ -44,7 +44,7 @@ func main() {
 
 	handler := handlers.NewHandler(service)
 
-	router.Post("/api/createfile/", handler.Create)
+	router.Post("/api/createfile", handler.Create)
 	router.Post("/api/uploadfile/{name}", handler.Upload)
 	router.Post("/api/file", handler.Rename)
 	router.Get("/file/{id}/{name}", handler.GetContent)
