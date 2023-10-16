@@ -115,7 +115,7 @@
             },
         }
 
-        fetch("/api/downloadfile/" + dataID, requestOptions)
+        fetch("/api/downloadfile/" + dataID + "/" + filename, requestOptions)
             .then(response => {
                 if (!response.ok) {
                     return response.clone().json().then(data => {
@@ -271,6 +271,7 @@
                     body: JSON.stringify(data),
                 };
 
+                console.log(data);
                 fetch("/api/createfile", requestOptions)
                     .then(response => {
                         if (!response.ok) {

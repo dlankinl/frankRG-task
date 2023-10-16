@@ -2,18 +2,42 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 )
 
 type FileViewParams struct {
-	ID int
+	ID       int
+	DirPath  string
+	Filename string
 }
 
-func (s Service) GetContent(ctx context.Context, params FileViewParams) ([]byte, error) {
-	content, err := s.repo.GetContent(ctx, params.ID)
-	if err != nil {
-		return nil, fmt.Errorf("getting content of file: %w", err)
+func (s Service) GetContent(ctx context.Context, params FileViewParams) error {
+	if _, err := os.Stat(params.DirPath); errors.Is(err, os.ErrNotExist) {
+		makeDirErr := os.MkdirAll(params.DirPath, 0755)
+		if makeDirErr != nil {
+			err = fmt.Errorf("creating dir: %w", makeDirErr)
+		}
 	}
 
-	return content, nil
+	file, err := os.Create(filepath.Join(params.DirPath, params.Filename))
+	if err != nil {
+		return fmt.Errorf("creating file: %w", err)
+	}
+
+	defer func() {
+		closeErr := file.Close()
+		if closeErr != nil {
+			err = fmt.Errorf("file closing: %w", closeErr)
+		}
+	}()
+
+	err = s.repo.GetContent(ctx, params.ID, file)
+	if err != nil {
+		return fmt.Errorf("reading file: %w", err)
+	}
+
+	return nil
 }

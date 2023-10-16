@@ -49,7 +49,7 @@ func main() {
 	router.Post("/api/file", handler.Rename)
 	router.Get("/file/{id}/{name}", handler.GetContent)
 	router.Get("/dir/{name}", handler.ListDirFiles)
-	router.Get("/api/downloadfile/{id}", handler.Download)
+	router.Get("/api/downloadfile/{id}/{name}", handler.Download)
 	router.Delete("/api/file/{id}", handler.Delete)
 
 	address := fmt.Sprintf("%s:%s", cfg.ServerHost, cfg.ServerPort)
