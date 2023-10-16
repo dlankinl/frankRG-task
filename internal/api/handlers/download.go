@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/sirupsen/logrus"
 	"net/http"
+	"path/filepath"
 	"strconv"
 )
 
@@ -20,8 +21,14 @@ func (s Service) Download(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	content, err := s.fileService.GetContent(r.Context(), fileService.FileViewParams{
-		ID: intID,
+	dataDir := "data"
+	filename := chi.URLParam(r, "name")
+	dPath := filepath.Join(dataDir, id)
+
+	err = s.fileService.GetContent(r.Context(), fileService.FileViewParams{
+		ID:       intID,
+		DirPath:  dPath,
+		Filename: filename,
 	})
 	if errors.Is(err, errs.TypeNotFileErr) {
 		logrus.Infof("try to download directory id=%d\n", intID)
@@ -34,9 +41,6 @@ func (s Service) Download(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/octet-stream")
-
-	_, err = w.Write(content)
 	if err != nil {
 		logrus.Warnf("%s\n", err)
 		util.ErrorJSON(w, err, http.StatusBadRequest)

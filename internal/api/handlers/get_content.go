@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/sirupsen/logrus"
 	"net/http"
+	"path/filepath"
 	"strconv"
 )
 
@@ -23,10 +24,14 @@ func (s Service) GetContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	dataDir := "data"
 	filename := chi.URLParam(r, "name")
+	dPath := filepath.Join(dataDir, id)
 
-	content, err := s.fileService.GetContent(r.Context(), fileService.FileViewParams{
-		ID: intID,
+	err = s.fileService.GetContent(r.Context(), fileService.FileViewParams{
+		ID:       intID,
+		DirPath:  dPath,
+		Filename: filename,
 	})
 
 	if err != nil {
@@ -38,7 +43,6 @@ func (s Service) GetContent(w http.ResponseWriter, r *http.Request) {
 	var resp FileResponse
 
 	resp.ID = intID
-	resp.Content = string(content)
 	resp.Filename = filename
 
 	err = util.WriteJSON(w, http.StatusOK, resp)
