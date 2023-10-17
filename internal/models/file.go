@@ -12,7 +12,8 @@ type File struct {
 	Size        int64
 	ModTime     time.Time
 	IsDirectory bool
-	Content     []byte
-	ParentID    int
-	Path        sql.NullString
+	//Content     []byte
+	ParentID int
+	Path     sql.NullString
+	DataOid  sql.NullInt32
 }

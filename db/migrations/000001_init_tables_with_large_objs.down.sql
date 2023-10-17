@@ -1,3 +1,1 @@
-DROP TABLE IF EXISTS File_Data CASCADE;
-
-DROP TABLE IF EXISTS Files;
+drop table if exists files;

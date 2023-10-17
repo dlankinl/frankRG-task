@@ -74,13 +74,20 @@
     <tbody>
     {{range .}}
     <tr>
-        <td><a href="{{if .IsDirectory}}/dir/{{else}}/file/{{.ID}}/{{end}}{{.Name}}">{{if .IsDirectory}}{{.Name}}/{{else}}{{.Name}}{{end}}</a></td>
+        {{if .IsDirectory}}
+        <td><a href="/dir/{{.Name}}">/{{.Name}}</a></td>
+        {{else}}
+        <td><a>{{.Name}}</a></td>
+        {{end}}
         <td>{{if .IsDirectory}}d{{else}}f{{end}}</td>
         <td>{{if .IsDirectory}}-{{else}}{{.Size}}{{end}}</td>
         <td>{{.ModTime}}</td>
         <td><button class="renameBtn" data-id="{{.ID}}">Переименовать</button></td>
         <td><button class="removeBtn" data-id="{{.ID}}">Удалить</button></td>
+        {{if .IsDirectory}}
+        {{else}}
         <td><button class="downloadBtn" data-id="{{.ID}}" name="{{.Name}}">Загрузить</button></td>
+        {{end}}
     </tr>
     {{end}}
     </tbody>
@@ -115,7 +122,8 @@
             },
         }
 
-        fetch("/api/downloadfile/" + dataID + "/" + filename, requestOptions)
+        console.log(dataID)
+        fetch("/api/file/" + dataID + "/download/", requestOptions)
             .then(response => {
                 if (!response.ok) {
                     return response.clone().json().then(data => {
@@ -160,7 +168,7 @@
             body: JSON.stringify(data),
         };
 
-        fetch("/api/file", requestOptions)
+        fetch("/api/file/", requestOptions)
             .then(response => {
                 if (!response.ok) {
                     return response.clone().json().then(data => {
@@ -185,7 +193,7 @@
             },
         }
 
-        fetch("/api/file/" + id, requestOptions)
+        fetch("/api/file/" + id + "/", requestOptions)
             .then(response => {
                 if (!response.ok) {
                     return response.clone().json().then(data => {
@@ -238,59 +246,58 @@
     confirmFileButton.addEventListener("click", function () {closeFileDialog(); createNewFile()});
 
     openDirButton.addEventListener("click", openDirDialog);
+
     confirmDirButton.addEventListener("click", function () {closeDirDialog(); createNewDir()})
 
     const byteSize = str => new Blob([str]).size;
 
     const parentDir = window.location.pathname.split("/")[2];
 
-    document.getElementById("uploadForm").addEventListener("submit", function(event) {
+    document.getElementById("uploadForm").addEventListener("submit", async function(event) {
         event.preventDefault(); // Prevent default form submission behavior
 
-        let file = document.getElementById("uploadedFile");
-        if (file.files.length) {
-            let reader = new FileReader();
+        const file = document.getElementById("uploadedFile").files[0];
+        try {
+            const requestOptions = {
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json',
+                    'name': file.name,
+                    'parent_dir': parentDir,
+                },
+                body: file,
+            };
 
-            reader.onload = function(e) {
-                console.log(e.target.result);
-                let content = e.target.result;
+            const uploadResponse = await fetch("/api/upload/", requestOptions)
 
-                const data = {
-                    name: file.files[0].name,
-                    size: byteSize(content),
-                    content: content,
-                    is_dir: false,
-                    parent_dir: parentDir,
-                };
+            const reader = uploadResponse.body.getReader()
+            const readableStream = new ReadableStream({
+                start(controller) {
+                    function push() {
+                        reader.read().then(({done, value}) => {
+                            if (done) {
+                                controller.close();
+                                return;
+                            }
+                            controller.enqueue(value);
+                            push();
+                        });
+                    }
 
-                const requestOptions = {
-                    method: "POST",
+                    push();
+                },
+            })
+            const response = await new Response(
+                readableStream,
+                {
                     headers: {
-                        'Content-Type': 'application/json',
+                        'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(data),
-                };
-
-                console.log(data);
-                fetch("/api/createfile", requestOptions)
-                    .then(response => {
-                        if (!response.ok) {
-                            return response.clone().json().then(data => {
-                                throw new Error(data.message)
-                            })
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        console.log(data);
-                        location.reload();
-                    })
-                    .catch(error => {
-                        alert(error)
-                    });
-            }
-
-            reader.readAsBinaryString(file.files[0]);
+                }).json()
+            location.reload();
+            console.log(response);
+        } catch (err) {
+            console.error(err)
         }
     });
 
@@ -317,7 +324,7 @@
             body: JSON.stringify(data),
         };
 
-        fetch("/api/createfile", requestOptions)
+        fetch("/api/create/", requestOptions)
             .then(response => {
                 if (!response.ok) {
                     return response.clone().json().then(data => {
@@ -333,6 +340,7 @@
                 alert(error)
             });
     }
+
 
     function createNewDir() {
         const content = null;
@@ -356,7 +364,7 @@
             body: JSON.stringify(data),
         };
 
-        fetch("/api/createfile", requestOptions)
+        fetch("/api/create/", requestOptions)
             .then(response => {
                 if (!response.ok) {
                     return response.clone().json().then(data => {

@@ -4,13 +4,11 @@ import (
 	errs "FrankRGTask/internal/errors"
 	"FrankRGTask/internal/models"
 	"context"
-	"crypto/sha256"
 	"database/sql"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"github.com/jackc/pgx/v5"
-	"github.com/sirupsen/logrus"
+	"github.com/lib/pq/oid"
 	"io"
 	"reflect"
 )
@@ -25,7 +23,33 @@ func NewDBConnection(db *pgx.Conn) PostgresDB {
 	}
 }
 
-func (repo *PostgresDB) Create(ctx context.Context, file *models.File, fileReader io.Reader) error {
+func (repo *PostgresDB) CreateDir(ctx context.Context, file *models.File) error {
+	var query string
+	query = `
+		insert into files(name, size, mod_time, is_directory, parent_id) 
+		values (@name, @size, @mod_time, @is_directory, @parent_id)
+	`
+
+	_, err := repo.db.Exec(
+		ctx,
+		query,
+		pgx.NamedArgs{
+			"name":         file.Name,
+			"size":         file.Size,
+			"mod_time":     file.ModTime,
+			"is_directory": file.IsDirectory,
+			"parent_id":    file.ParentID,
+		},
+	)
+
+	if err != nil {
+		return fmt.Errorf("creating dir: %w", err)
+	}
+
+	return nil
+}
+
+func (repo *PostgresDB) Create(ctx context.Context, file *models.File, content []byte) error {
 	tx, err := repo.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin tx (create): %w", err)
@@ -47,40 +71,96 @@ func (repo *PostgresDB) Create(ctx context.Context, file *models.File, fileReade
 		return fmt.Errorf("creating large object: %w", err)
 	}
 
-	var query string
-	if fileReader != nil {
-		lo, err := loStorage.Open(ctx, loId, pgx.LargeObjectModeWrite)
-		if err != nil {
-			return fmt.Errorf("opening large object: %w", err)
-		}
-
-		hash := sha256.New()
-		teeReader := io.TeeReader(fileReader, hash)
-
-		_, err = io.Copy(lo, teeReader)
-		if err != nil {
-			return fmt.Errorf("copying data to db large object from file: %w", err)
-		}
-	}
-
-	query = `
-		insert into File_Data(hash, data_oid)
-		values ($1, $2)
-		returning id
-	`
-
-	var dataId int
-	err = repo.db.QueryRow(ctx, query, base64.URLEncoding.EncodeToString(file.Content), loId).Scan(&dataId)
+	lo, err := loStorage.Open(ctx, loId, pgx.LargeObjectModeWrite)
 	if err != nil {
-		return fmt.Errorf("inserting file data: %w", err)
+		return fmt.Errorf("opening large object: %w", err)
+	}
+	_, err = lo.Write(content)
+	if err != nil {
+		return fmt.Errorf("writing data to db large object from request: %w")
 	}
 
+	var query string
 	query = `
-		insert into Files(name, size, modtime, isdirectory, parentid, file_data_id) 
-		values ($1, $2, $3, $4, $5, $6)
+		insert into files(name, size, mod_time, is_directory, parent_id, data_oid) 
+		values (@name, @size, @mod_time, @is_directory, @parent_id, @data_oid)
 	`
 
-	_, err = repo.db.Exec(ctx, query, file.Name, file.Size, file.ModTime, file.IsDirectory, file.ParentID, dataId)
+	_, err = tx.Exec(
+		ctx,
+		query,
+		pgx.NamedArgs{
+			"name":         file.Name,
+			"size":         file.Size,
+			"mod_time":     file.ModTime,
+			"is_directory": file.IsDirectory,
+			"parent_id":    file.ParentID,
+			"data_oid":     loId,
+		},
+	)
+
+	if err != nil {
+		return fmt.Errorf("creating entity: %w", err)
+	}
+	err = tx.Commit(ctx)
+	if err != nil {
+		return fmt.Errorf("commit tx: %w", err)
+	}
+
+	return nil
+}
+
+func (repo *PostgresDB) Upload(ctx context.Context, file *models.File, reader io.Reader) error {
+	tx, err := repo.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin tx (create): %w", err)
+	}
+
+	defer func() {
+		if err != nil {
+			rollbackErr := tx.Rollback(ctx)
+			if rollbackErr != nil {
+				err = fmt.Errorf("rollback error: %w", rollbackErr)
+			}
+		}
+	}()
+
+	loStorage := tx.LargeObjects()
+
+	loId, err := loStorage.Create(ctx, 0)
+	if err != nil {
+		return fmt.Errorf("creating large object: %w", err)
+	}
+
+	lo, err := loStorage.Open(ctx, loId, pgx.LargeObjectModeWrite)
+	if err != nil {
+		return fmt.Errorf("opening large object: %w", err)
+	}
+
+	_, err = io.Copy(lo, reader)
+	if err != nil {
+		return fmt.Errorf("copying data to db large object from file: %w", err)
+	}
+
+	var query string
+	query = `
+		insert into files(name, size, mod_time, is_directory, parent_id, data_oid) 
+		values (@name, @size, @mod_time, @is_directory, @parent_id, @data_oid)
+	`
+
+	_, err = tx.Exec(
+		ctx,
+		query,
+		pgx.NamedArgs{
+			"name":         file.Name,
+			"size":         file.Size,
+			"mod_time":     file.ModTime,
+			"is_directory": file.IsDirectory,
+			"parent_id":    file.ParentID,
+			"data_oid":     loId,
+		},
+	)
+
 	if err != nil {
 		return fmt.Errorf("creating entity: %w", err)
 	}
@@ -95,8 +175,14 @@ func (repo *PostgresDB) Create(ctx context.Context, file *models.File, fileReade
 func (repo *PostgresDB) GetParent(ctx context.Context, name string) (int, error) {
 	query := `select id 
 				from Files 
-          		where name = $1 and size = 0 and isdirectory = true`
-	row := repo.db.QueryRow(ctx, query, name)
+          		where name = @name and size = 0 and is_directory = true`
+	row := repo.db.QueryRow(
+		ctx,
+		query,
+		pgx.NamedArgs{
+			"name": name,
+		},
+	)
 	var id int
 	err := row.Scan(&id)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -111,11 +197,18 @@ func (repo *PostgresDB) GetParent(ctx context.Context, name string) (int, error)
 
 func (repo *PostgresDB) Rename(ctx context.Context, newName string, id int) error {
 	query := `update files
-			set name = $1
-			where id = $2
+			set name = @name
+			where id = @id
 		`
 
-	res, err := repo.db.Exec(ctx, query, newName, id)
+	res, err := repo.db.Exec(
+		ctx,
+		query,
+		pgx.NamedArgs{
+			"name": newName,
+			"id":   id,
+		},
+	)
 	if err != nil {
 		return fmt.Errorf("renaming entity: %w", err)
 	}
@@ -132,16 +225,22 @@ func (repo *PostgresDB) Rename(ctx context.Context, newName string, id int) erro
 func (repo *PostgresDB) FindFilesRecursive(ctx context.Context, id int) ([]int, error) {
 	query := `
 		with recursive DirectoryHierarchy as (
-		    select id from files where id = $1           
+		    select id from files where id = @id           
 		    union all 
 		    select f.id from files f
-			inner join DirectoryHierarchy dh on f.parentid = dh.id
+			inner join DirectoryHierarchy dh on f.parent_id = dh.id
 		)
 		select id 
 		from DirectoryHierarchy;
-		`
+	`
 
-	rows, err := repo.db.Query(ctx, query, id)
+	rows, err := repo.db.Query(
+		ctx,
+		query,
+		pgx.NamedArgs{
+			"id": id,
+		},
+	)
 
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, errs.NoDirsWereFoundErr
@@ -162,70 +261,20 @@ func (repo *PostgresDB) FindFilesRecursive(ctx context.Context, id int) ([]int, 
 	return idsToDelete, nil
 }
 
-func (repo *PostgresDB) DeleteByID(ctx context.Context, id int) (int, error) {
-	ids, err := repo.FindFilesRecursive(ctx, id)
-	if err != nil {
-		return 0, fmt.Errorf("deleting by ID (recursive searching for files): %w", err)
-	}
-
-	if len(ids) == 0 {
-		return 0, nil
-	}
-
-	tx, err := repo.db.Begin(ctx)
-	if err != nil {
-		return 0, fmt.Errorf("begin tx (create): %w", err)
-	}
-
-	defer func() {
-		if err != nil {
-			rollbackErr := tx.Rollback(ctx)
-			if rollbackErr != nil {
-				err = fmt.Errorf("rollback error: %w", rollbackErr)
-			}
-		}
-	}()
-
-	deleteQuery := `
-		delete from file_data 
-			where id in (
-			select file_data_id 
-			from files
-				where id in ($1))
-			)
-	`
-
-	_, err = repo.db.Exec(ctx, deleteQuery, ids)
-	if err != nil {
-		return 0, fmt.Errorf("deleting files data (exec): %w", err)
-	}
-
-	deleteQuery = `
-		delete from files 
-       	where id IN ($1)
-	`
-
-	_, err = repo.db.Exec(ctx, deleteQuery, ids)
-	if err != nil {
-		return 0, fmt.Errorf("deleting files by IDs (exec): %w", err)
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return 0, fmt.Errorf("commit tx: %w", err)
-	}
-
-	return len(ids), nil
-}
-
 func (repo *PostgresDB) GetFilesInDir(ctx context.Context, id int) ([]models.File, error) {
 	query := `
 		select * 
-		from Files 
-		where parentid = $1
+		from files 
+		where parent_id = @parent_id
 	`
 
-	rows, err := repo.db.Query(ctx, query, id)
+	rows, err := repo.db.Query(
+		ctx,
+		query,
+		pgx.NamedArgs{
+			"parent_id": id,
+		},
+	)
 
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, errs.NoDirsWereFoundErr
@@ -256,7 +305,7 @@ func (repo *PostgresDB) GetFilesInDir(ctx context.Context, id int) ([]models.Fil
 	return filesList, err
 }
 
-func (repo *PostgresDB) GetContent(ctx context.Context, id int, loWriter io.Writer) error {
+func (repo *PostgresDB) Download(ctx context.Context, id int, readFn func(reader io.Reader) error) error {
 	tx, err := repo.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("tx begin: %w", err)
@@ -273,15 +322,18 @@ func (repo *PostgresDB) GetContent(ctx context.Context, id int, loWriter io.Writ
 
 	var loId uint32
 	query := `
-		select fd.data_oid
-		from files f 
-			inner join file_data fd
-			on fd.id = f.file_data_id
-		where fd.id = $1
+		select f.data_oid
+		from files f
+		where f.id = @id
 	`
-	logrus.Infof("loId=%d!!!!!! id=%d", loId, id)
 
-	err = repo.db.QueryRow(ctx, query, id).Scan(&loId)
+	err = repo.db.QueryRow(
+		ctx,
+		query,
+		pgx.NamedArgs{
+			"id": id,
+		},
+	).Scan(&loId)
 
 	loStorage := tx.LargeObjects()
 
@@ -290,7 +342,7 @@ func (repo *PostgresDB) GetContent(ctx context.Context, id int, loWriter io.Writ
 		return fmt.Errorf("opening large files with id=%d: %w", loId, err)
 	}
 
-	_, err = io.Copy(loWriter, lo)
+	err = readFn(lo)
 	if err != nil {
 		return fmt.Errorf("copying large object data to file: %w", err)
 	}
@@ -298,6 +350,84 @@ func (repo *PostgresDB) GetContent(ctx context.Context, id int, loWriter io.Writ
 	err = tx.Commit(ctx)
 	if err != nil {
 		return fmt.Errorf("tx commit: %w", err)
+	}
+
+	return nil
+}
+
+func (repo *PostgresDB) DeleteFile(ctx context.Context, id int) error {
+	tx, err := repo.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+
+	defer func() {
+		if err != nil {
+			rollbackErr := tx.Rollback(ctx)
+			if rollbackErr != nil {
+				err = fmt.Errorf("rollback error: %w", rollbackErr)
+			}
+		}
+	}()
+
+	ids, err := repo.FindFilesRecursive(ctx, id)
+	if err != nil {
+		return fmt.Errorf("deleting by ID (recursive searching for files): %w", err)
+	}
+
+	if len(ids) == 0 {
+		return fmt.Errorf("delete files: %w", err)
+	}
+
+	query := `
+		select f.data_oid
+		from files f
+		where f.id = any(@ids::int[]) and f.is_directory = false;
+	`
+
+	rows, err := tx.Query(
+		ctx,
+		query,
+		pgx.NamedArgs{
+			"ids": ids,
+		})
+
+	var oids []oid.Oid
+	for rows.Next() {
+		var oid_ oid.Oid
+		if err = rows.Scan(&oid_); err != nil {
+			return fmt.Errorf("getting oid (scan): %w", err)
+		}
+		oids = append(oids, oid_)
+	}
+
+	query = ""
+	for _, oid_ := range oids {
+		query += fmt.Sprintf("select lo_unlink(%d);", oid_)
+	}
+
+	_, err = tx.Exec(ctx, query)
+
+	if err != nil {
+		return fmt.Errorf("unlink large object: %w", err)
+	}
+
+	query = `
+		delete from files
+			where id = any(@ids::int[])
+	`
+
+	_, err = tx.Exec(
+		ctx,
+		query,
+		pgx.NamedArgs{
+			"ids": ids,
+		},
+	)
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return fmt.Errorf("commit tx: %w", err)
 	}
 
 	return nil

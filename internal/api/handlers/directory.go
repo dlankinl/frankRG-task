@@ -11,7 +11,7 @@ import (
 	"text/template"
 )
 
-func (s Service) ListDirFiles(w http.ResponseWriter, r *http.Request) {
+func (s Handlers) ListDirFiles(w http.ResponseWriter, r *http.Request) {
 	type FileRequest struct {
 		Name string
 	}

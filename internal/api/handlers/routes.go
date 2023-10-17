@@ -5,12 +5,12 @@ import fileService "FrankRGTask/internal/service"
 type FileService interface {
 }
 
-type Service struct {
+type Handlers struct {
 	fileService fileService.Service
 }
 
-func NewHandler(service fileService.Service) Service {
-	return Service{
+func NewHandler(service fileService.Service) Handlers {
+	return Handlers{
 		fileService: service,
 	}
 }

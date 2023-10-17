@@ -9,11 +9,11 @@ type DeleteParams struct {
 	ID int
 }
 
-func (s Service) Delete(ctx context.Context, params DeleteParams) (int, error) {
-	deletedRows, err := s.repo.DeleteByID(ctx, params.ID)
+func (s Service) Delete(ctx context.Context, params DeleteParams) error {
+	err := s.repo.DeleteFile(ctx, params.ID)
 	if err != nil {
-		return 0, fmt.Errorf("deleting file/directory by id: %w", err)
+		return fmt.Errorf("deleting file/directory by id: %w", err)
 	}
 
-	return deletedRows, nil
+	return nil
 }

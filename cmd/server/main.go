@@ -44,13 +44,13 @@ func main() {
 
 	handler := handlers.NewHandler(service)
 
-	router.Post("/api/createfile", handler.Create)
-	router.Post("/api/uploadfile/{name}", handler.Upload)
-	router.Post("/api/file", handler.Rename)
-	router.Get("/file/{id}/{name}", handler.GetContent)
+	router.Post("/api/create/", handler.Create)
+	router.Post("/api/upload/", handler.Upload)
+	router.Post("/api/file/", handler.Rename)
 	router.Get("/dir/{name}", handler.ListDirFiles)
-	router.Get("/api/downloadfile/{id}/{name}", handler.Download)
-	router.Delete("/api/file/{id}", handler.Delete)
+	router.Get("/api/file/{id}/download/", handler.Download)
+	router.Delete("/api/file/{id}/", handler.Delete)
+	//router.Get("/file/{id}/{name}", handler.GetContent)
 
 	address := fmt.Sprintf("%s:%s", cfg.ServerHost, cfg.ServerPort)
 
