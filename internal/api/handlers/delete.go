@@ -10,7 +10,7 @@ import (
 	"strconv"
 )
 
-func (s Service) Delete(w http.ResponseWriter, r *http.Request) {
+func (s Handlers) Delete(w http.ResponseWriter, r *http.Request) {
 	type FileRequest struct {
 		ID int
 	}
@@ -23,7 +23,7 @@ func (s Service) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	deletedRows, err := s.fileService.Delete(r.Context(), fileService.DeleteParams{
+	err = s.fileService.Delete(r.Context(), fileService.DeleteParams{
 		ID: intID,
 	})
 
@@ -40,8 +40,7 @@ func (s Service) Delete(w http.ResponseWriter, r *http.Request) {
 			Status      string `json:"status"`
 			DeletedRows int    `json:"deleted_rows"`
 		}{
-			Status:      "OK",
-			DeletedRows: deletedRows,
+			Status: "OK",
 		},
 	)
 	if err != nil {
@@ -50,5 +49,5 @@ func (s Service) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logrus.Infof("successfully deleted %d rows\n", deletedRows)
+	logrus.Infof("successfully deleted\n")
 }

@@ -27,11 +27,14 @@ func (s Service) Create(ctx context.Context, params CreateParams) error {
 		Size:        params.Size,
 		ModTime:     time.Now().UTC(),
 		IsDirectory: params.IsDirectory,
-		Content:     params.Content,
 		ParentID:    parentID,
 	}
 
-	err = s.repo.Create(ctx, &file)
+	if params.IsDirectory {
+		err = s.repo.CreateDir(ctx, &file)
+	} else {
+		err = s.repo.Create(ctx, &file, params.Content)
+	}
 	if err != nil {
 		return fmt.Errorf("creating file/directory: %w", err)
 	}

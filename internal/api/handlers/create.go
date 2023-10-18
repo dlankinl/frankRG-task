@@ -10,7 +10,7 @@ import (
 	"net/http"
 )
 
-func (s Service) Create(w http.ResponseWriter, r *http.Request) {
+func (s Handlers) Create(w http.ResponseWriter, r *http.Request) {
 	type FileRequest struct {
 		Name      string `json:"name"`
 		Content   string `json:"content"`
@@ -32,6 +32,7 @@ func (s Service) Create(w http.ResponseWriter, r *http.Request) {
 		Size:        fileReq.Size,
 		IsDirectory: fileReq.IsDir,
 		Content:     []byte(fileReq.Content),
+		ParentDir:   fileReq.ParentDir,
 	})
 
 	if err != nil {

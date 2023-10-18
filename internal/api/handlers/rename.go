@@ -9,7 +9,7 @@ import (
 	"net/http"
 )
 
-func (s Service) Rename(w http.ResponseWriter, r *http.Request) {
+func (s Handlers) Rename(w http.ResponseWriter, r *http.Request) {
 	type FileRequest struct {
 		ID      int    `json:"id"`
 		Newname string `json:"new_name"`

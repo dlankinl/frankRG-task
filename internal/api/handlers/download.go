@@ -3,7 +3,7 @@ package handlers
 import (
 	errs "FrankRGTask/internal/errors"
 	_ "FrankRGTask/internal/logger"
-	fileService "FrankRGTask/internal/service"
+	"FrankRGTask/internal/service"
 	"FrankRGTask/internal/util"
 	"errors"
 	"github.com/go-chi/chi/v5"
@@ -12,7 +12,7 @@ import (
 	"strconv"
 )
 
-func (s Service) Download(w http.ResponseWriter, r *http.Request) {
+func (s Handlers) Download(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	intID, err := strconv.Atoi(id)
 	if err != nil {
@@ -20,8 +20,8 @@ func (s Service) Download(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	content, err := s.fileService.GetContent(r.Context(), fileService.FileViewParams{
-		ID: intID,
+	err = s.fileService.Download(r.Context(), w, service.DownloadParams{
+		FileId: intID,
 	})
 	if errors.Is(err, errs.TypeNotFileErr) {
 		logrus.Infof("try to download directory id=%d\n", intID)
@@ -34,9 +34,6 @@ func (s Service) Download(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/octet-stream")
-
-	_, err = w.Write(content)
 	if err != nil {
 		logrus.Warnf("%s\n", err)
 		util.ErrorJSON(w, err, http.StatusBadRequest)
