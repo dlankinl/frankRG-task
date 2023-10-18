@@ -18,7 +18,6 @@ func Serve(addr string, router *chi.Mux) error {
 	srv := &http.Server{
 		Addr:        addr,
 		Handler:     router,
-		ReadTimeout: time.Second * 4,
 		IdleTimeout: time.Second * 60,
 	}
 

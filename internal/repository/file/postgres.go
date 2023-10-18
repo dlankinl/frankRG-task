@@ -22,7 +22,7 @@ func NewDBConnection(db *pgx.Conn) PostgresDB {
 	}
 }
 
-func (repo *PostgresDB) CreateDir(ctx context.Context, file *models.File) error {
+func (repo PostgresDB) CreateDir(ctx context.Context, file *models.File) error {
 	var query string
 	query = `
 		insert into files(name, size, mod_time, is_directory, parent_id) 
@@ -48,7 +48,7 @@ func (repo *PostgresDB) CreateDir(ctx context.Context, file *models.File) error 
 	return nil
 }
 
-func (repo *PostgresDB) Create(ctx context.Context, file *models.File, content []byte) error {
+func (repo PostgresDB) Create(ctx context.Context, file *models.File, content []byte) error {
 	tx, err := repo.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin tx (create): %w", err)
@@ -109,7 +109,7 @@ func (repo *PostgresDB) Create(ctx context.Context, file *models.File, content [
 	return nil
 }
 
-func (repo *PostgresDB) Upload(ctx context.Context, file *models.File, reader io.Reader) error {
+func (repo PostgresDB) Upload(ctx context.Context, file *models.File, reader io.Reader) error {
 	tx, err := repo.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin tx (create): %w", err)
@@ -171,7 +171,7 @@ func (repo *PostgresDB) Upload(ctx context.Context, file *models.File, reader io
 	return nil
 }
 
-func (repo *PostgresDB) GetParent(ctx context.Context, name string) (int, error) {
+func (repo PostgresDB) GetParent(ctx context.Context, name string) (int, error) {
 	query := `select id 
 				from files 
           		where name = @name and size = 0 and is_directory = true`
@@ -194,7 +194,7 @@ func (repo *PostgresDB) GetParent(ctx context.Context, name string) (int, error)
 	return id, nil
 }
 
-func (repo *PostgresDB) Rename(ctx context.Context, newName string, id int) error {
+func (repo PostgresDB) Rename(ctx context.Context, newName string, id int) error {
 	query := `update files
 			set name = @name
 			where id = @id
@@ -221,7 +221,7 @@ func (repo *PostgresDB) Rename(ctx context.Context, newName string, id int) erro
 	return nil
 }
 
-func (repo *PostgresDB) FindFilesRecursive(ctx context.Context, id int) ([]int, error) {
+func (repo PostgresDB) FindFilesRecursive(ctx context.Context, id int) ([]int, error) {
 	query := `
 		with recursive DirectoryHierarchy as (
 		    select id from files where id = @id           
@@ -260,7 +260,7 @@ func (repo *PostgresDB) FindFilesRecursive(ctx context.Context, id int) ([]int, 
 	return idsToDelete, nil
 }
 
-func (repo *PostgresDB) GetFilesInDir(ctx context.Context, id int) ([]models.File, error) {
+func (repo PostgresDB) GetFilesInDir(ctx context.Context, id int) ([]models.File, error) {
 	query := `
 		select * 
 		from files 
@@ -304,7 +304,7 @@ func (repo *PostgresDB) GetFilesInDir(ctx context.Context, id int) ([]models.Fil
 	return filesList, err
 }
 
-func (repo *PostgresDB) Download(ctx context.Context, id int, readFn func(reader io.Reader) error) error {
+func (repo PostgresDB) Download(ctx context.Context, id int, readFn func(reader io.Reader) error) error {
 	tx, err := repo.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("tx begin: %w", err)
@@ -354,7 +354,7 @@ func (repo *PostgresDB) Download(ctx context.Context, id int, readFn func(reader
 	return nil
 }
 
-func (repo *PostgresDB) DeleteFile(ctx context.Context, id int) error {
+func (repo PostgresDB) DeleteFile(ctx context.Context, id int) error {
 	tx, err := repo.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)
