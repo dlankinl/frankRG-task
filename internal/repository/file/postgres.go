@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jackc/pgx/v5"
-	"github.com/lib/pq/oid"
 	"io"
 	"reflect"
 )
@@ -174,7 +173,7 @@ func (repo *PostgresDB) Upload(ctx context.Context, file *models.File, reader io
 
 func (repo *PostgresDB) GetParent(ctx context.Context, name string) (int, error) {
 	query := `select id 
-				from Files 
+				from files 
           		where name = @name and size = 0 and is_directory = true`
 	row := repo.db.QueryRow(
 		ctx,
@@ -382,7 +381,8 @@ func (repo *PostgresDB) DeleteFile(ctx context.Context, id int) error {
 	query := `
 		select f.data_oid
 		from files f
-		where f.id = any(@ids::int[]) and f.is_directory = false;
+		where f.id = any(@ids::int[]) 
+		  and f.is_directory = false;
 	`
 
 	rows, err := tx.Query(
@@ -390,31 +390,36 @@ func (repo *PostgresDB) DeleteFile(ctx context.Context, id int) error {
 		query,
 		pgx.NamedArgs{
 			"ids": ids,
-		})
+		},
+	)
 
-	var oids []oid.Oid
+	var oids []uint32
 	for rows.Next() {
-		var oid_ oid.Oid
-		if err = rows.Scan(&oid_); err != nil {
+		var oid uint32
+
+		err = rows.Scan(&oid)
+		if err != nil {
 			return fmt.Errorf("getting oid (scan): %w", err)
 		}
-		oids = append(oids, oid_)
+		oids = append(oids, oid)
 	}
 
-	query = ""
-	for _, oid_ := range oids {
-		query += fmt.Sprintf("select lo_unlink(%d);", oid_)
-	}
-
-	_, err = tx.Exec(ctx, query)
-
-	if err != nil {
-		return fmt.Errorf("unlink large object: %w", err)
+	for _, oid := range oids {
+		_, err = tx.Exec(
+			ctx,
+			`select lo_unlink(@oid)`,
+			pgx.NamedArgs{
+				"oid": oid,
+			},
+		)
+		if err != nil {
+			return fmt.Errorf("unlink large object: %w", err)
+		}
 	}
 
 	query = `
 		delete from files
-			where id = any(@ids::int[])
+		where id = any(@ids::int[])
 	`
 
 	_, err = tx.Exec(

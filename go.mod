@@ -6,7 +6,6 @@ require (
 	github.com/go-chi/chi/v5 v5.0.10
 	github.com/golang-migrate/migrate/v4 v4.16.2
 	github.com/jackc/pgx/v5 v5.3.1
-	github.com/lib/pq v1.10.2
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/viper v1.16.0
 )
