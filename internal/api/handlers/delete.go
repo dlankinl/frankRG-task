@@ -1,9 +1,8 @@
-package delete
+package handlers
 
 import (
-	"FrankRGTask/api/fileHandler"
+	fileService "FrankRGTask/internal/service"
 	"FrankRGTask/internal/util"
-	"context"
 	"errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/sirupsen/logrus"
@@ -11,7 +10,11 @@ import (
 	"strconv"
 )
 
-func DeleteFileHandler(w http.ResponseWriter, r *http.Request) {
+func (s Handlers) Delete(w http.ResponseWriter, r *http.Request) {
+	type FileRequest struct {
+		ID int
+	}
+
 	id := chi.URLParam(r, "id")
 	intID, err := strconv.Atoi(id)
 	if err != nil {
@@ -20,10 +23,9 @@ func DeleteFileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), fileHandler.DBTimeout)
-	defer cancel()
-
-	deletedRows, err := fileHandler.Repo.DeleteByID(ctx, intID)
+	err = s.fileService.Delete(r.Context(), fileService.DeleteParams{
+		ID: intID,
+	})
 
 	if err != nil {
 		logrus.Infof("%s\n", err)
@@ -31,16 +33,21 @@ func DeleteFileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	util.WriteJSON(
+	err = util.WriteJSON(
 		w,
 		http.StatusOK,
 		struct {
 			Status      string `json:"status"`
 			DeletedRows int    `json:"deleted_rows"`
 		}{
-			Status:      "OK",
-			DeletedRows: deletedRows,
+			Status: "OK",
 		},
 	)
-	logrus.Infof("successfully deleted %d rows\n", deletedRows)
+	if err != nil {
+		logrus.Infof("error while writing json response: %s\n", err)
+		util.ErrorJSON(w, err, http.StatusBadRequest)
+		return
+	}
+
+	logrus.Infof("successfully deleted\n")
 }

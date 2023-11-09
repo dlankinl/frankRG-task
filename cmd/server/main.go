@@ -1,22 +1,24 @@
 package main
 
 import (
-	"FrankRGTask/api/fileHandler"
-	"FrankRGTask/api/routes"
-	config2 "FrankRGTask/config"
+	"FrankRGTask/config"
 	"FrankRGTask/database"
+	"FrankRGTask/internal/api/handlers"
 	_ "FrankRGTask/internal/logger"
-	"FrankRGTask/internal/repository/file"
-	"FrankRGTask/pkg/transactor"
+	fileRepo "FrankRGTask/internal/repository/file"
+	fileService "FrankRGTask/internal/service"
 	"fmt"
+	"github.com/go-chi/chi/v5"
 	"github.com/sirupsen/logrus"
 	"net/http"
+	"time"
 )
 
-func Serve(addr string) error {
+func Serve(addr string, router *chi.Mux) error {
 	srv := &http.Server{
-		Addr:    addr,
-		Handler: routes.Routes(),
+		Addr:        addr,
+		Handler:     router,
+		IdleTimeout: time.Second * 60,
 	}
 
 	logrus.Infof("server is listening on %s address", addr)
@@ -26,22 +28,32 @@ func Serve(addr string) error {
 func main() {
 	fn := "cmd.main.main"
 
-	config, err := config2.LoadConfig(".")
+	cfg, err := config.LoadConfig(".")
 	if err != nil {
 		logrus.Fatalf("%s: %s\n", fn, err)
 	}
 
-	txMngr := transactor.NewTransactor()
+	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s", cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName, cfg.SSLMode)
+	db := database.ConnectDB(connStr)
 
-	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s", config.DBHost, config.DBPort, config.DBUser, config.DBPassword, config.DBName, config.SSLMode)
-	db := database.ConnectDBAndMigrate(config, connStr)
+	router := chi.NewRouter()
 
-	filesRepo := file.NewDBConnection(db, txMngr, "postgres")
-	fileHandler.SetRepository(filesRepo)
+	repo := fileRepo.NewDBConnection(db)
+	service := fileService.NewService(repo)
 
-	address := fmt.Sprintf("%s:%s", config.ServerHost, config.ServerPort)
+	handler := handlers.NewHandler(service)
 
-	err = Serve(address)
+	router.Post("/api/create/", handler.Create)
+	router.Post("/api/upload/", handler.Upload)
+	router.Post("/api/file/", handler.Rename)
+	router.Get("/dir/{name}", handler.ListDirFiles)
+	router.Get("/api/file/{id}/download/", handler.Download)
+	router.Delete("/api/file/{id}/", handler.Delete)
+	//router.Get("/file/{id}/{name}", handler.GetContent)
+
+	address := fmt.Sprintf("%s:%s", cfg.ServerHost, cfg.ServerPort)
+
+	err = Serve(address, router)
 	if err != nil {
 		logrus.Fatal("error while serving http server: ", err)
 	}
